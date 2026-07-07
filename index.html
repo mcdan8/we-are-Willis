@@ -727,6 +727,24 @@ function openPerson(id){
   if(m.spouse_of&&MEMBERS[m.spouse_of]) spouses.push(m.spouse_of);
   Object.keys(MEMBERS).forEach(k=>{ if(MEMBERS[k].spouse_of===id&&!spouses.includes(k)) spouses.push(k); });
   const founder=!parents.length&&!(m.spouse_of&&MEMBERS[m.spouse_of]);
+  // ancestors beyond parents
+  const upTiers=[]; let up=parents;
+  const upLabels=['Grandparents','Great-grandparents','Great-great-grandparents','Great-great-great-grandparents'];
+  for(let i=0;i<upLabels.length;i++){
+    const next=[];
+    up.forEach(pid=>(MEMBERS[pid].parents||[]).filter(x=>MEMBERS[x]).forEach(g=>{ if(!next.includes(g)) next.push(g); }));
+    if(!next.length) break;
+    upTiers.push([upLabels[i],next]); up=next;
+  }
+  // descendants beyond children
+  const downTiers=[]; let down=kids; let lvl=2;
+  while(lvl<=8){
+    const next=[];
+    down.forEach(k=>childrenOf(k).forEach(c=>{ if(!next.includes(c)) next.push(c); }));
+    if(!next.length) break;
+    const label=lvl===2?'Grandchildren':('Great-'.repeat(lvl-2)+'grandchildren');
+    downTiers.push([label,next]); down=next; lvl++;
+  }
   pv.innerHTML=`
     <div class="tree-back" onclick="showClanIndex()">‹ All family</div>
     <div class="person-card">
@@ -737,7 +755,7 @@ function openPerson(id){
         <div class="fact"><div class="k">Lives in</div><div class="v">${m.city?esc(m.city):'—'}</div></div>
       </div>
     </div>
-    ${chips('Parents',parents)}${chips('💍 Spouse',spouses)}${chips('Siblings',sibs)}${chips('Children',kids)}
+    ${chips('Parents',parents)}${upTiers.map(t=>chips(t[0]+' ('+t[1].length+')',t[1])).join('')}${chips('💍 Spouse',spouses)}${chips('Siblings',sibs)}${chips('Children'+(kids.length>2?' ('+kids.length+')':''),kids)}${downTiers.map(t=>chips(t[0]+' ('+t[1].length+')',t[1])).join('')}
     <div class="mini-tree">${miniTree(id,parents,kids,m)}</div>
     <button class="pill pill-gold" style="display:block;margin:16px auto 0" onclick="openSheet('memberSheet','${id}')">✎ Edit ${esc(m.name)}</button>
     <button class="link-btn" style="display:block;margin:12px auto 0" onclick="delMember('${id}')">Remove ${esc(m.name)} from the tree</button>`;
@@ -839,37 +857,88 @@ async function delRow(table,id){
 }
 
 /* ================= FAITH ================= */
-const DAILY_VERSES=[
+const FALLBACK=[
  {ref:'Joshua 24:15',text:'As for me and my house, we will serve the Lord.'},
  {ref:'Psalm 133:1',text:'Behold, how good and how pleasant it is for brethren to dwell together in unity!'},
  {ref:'Proverbs 17:17',text:'A friend loveth at all times, and a brother is born for adversity.'},
  {ref:'Philippians 4:13',text:'I can do all things through Christ which strengtheneth me.'},
  {ref:'Psalm 118:24',text:'This is the day which the Lord hath made; we will rejoice and be glad in it.'},
  {ref:'Proverbs 3:5',text:'Trust in the Lord with all thine heart; and lean not unto thine own understanding.'},
- {ref:'1 Corinthians 13:13',text:'And now abideth faith, hope, charity, these three; but the greatest of these is charity.'},
  {ref:'Psalm 23:1',text:'The Lord is my shepherd; I shall not want.'},
  {ref:'Matthew 18:20',text:'For where two or three are gathered together in my name, there am I in the midst of them.'},
- {ref:'Jeremiah 29:11',text:'For I know the thoughts that I think toward you, saith the Lord, thoughts of peace, and not of evil.'},
- {ref:'Psalm 127:3',text:'Lo, children are an heritage of the Lord.'},
- {ref:'Galatians 6:9',text:'Let us not be weary in well doing: for in due season we shall reap, if we faint not.'},
- {ref:'Proverbs 22:6',text:'Train up a child in the way he should go: and when he is old, he will not depart from it.'},
- {ref:'Isaiah 40:31',text:'They that wait upon the Lord shall renew their strength; they shall mount up with wings as eagles.'},
  {ref:'Romans 8:28',text:'All things work together for good to them that love God.'},
- {ref:'Psalm 100:4',text:'Enter into his gates with thanksgiving, and into his courts with praise.'},
- {ref:'Ephesians 4:32',text:'Be ye kind one to another, tenderhearted, forgiving one another.'},
- {ref:'Deuteronomy 6:6-7',text:'These words shall be in thine heart: and thou shalt teach them diligently unto thy children.'},
  {ref:'Psalm 46:1',text:'God is our refuge and strength, a very present help in trouble.'},
- {ref:'Colossians 3:14',text:'Above all these things put on charity, which is the bond of perfectness.'},
- {ref:'Numbers 6:24',text:'The Lord bless thee, and keep thee.'},
 ];
 function autoVerse(){
   const now=new Date();
   const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/86400000);
-  return DAILY_VERSES[doy%DAILY_VERSES.length];
+  return FALLBACK[doy%FALLBACK.length];
+}
+/* Whole-Bible daily rotation — NIV fetched live, all 66 books */
+const VERSE_REFS=[
+[1,1,1,'Genesis 1:1'],[1,12,2,'Genesis 12:2'],[1,28,15,'Genesis 28:15'],[1,50,20,'Genesis 50:20'],
+[2,14,14,'Exodus 14:14'],[2,20,12,'Exodus 20:12'],[3,19,18,'Leviticus 19:18'],[4,6,24,'Numbers 6:24'],[4,6,25,'Numbers 6:25'],
+[5,6,5,'Deuteronomy 6:5'],[5,31,6,'Deuteronomy 31:6'],[6,1,9,'Joshua 1:9'],[6,24,15,'Joshua 24:15'],
+[7,6,12,'Judges 6:12'],[8,1,16,'Ruth 1:16'],[9,16,7,'1 Samuel 16:7'],[10,22,31,'2 Samuel 22:31'],
+[11,8,57,'1 Kings 8:57'],[12,6,16,'2 Kings 6:16'],[13,16,11,'1 Chronicles 16:11'],[13,29,11,'1 Chronicles 29:11'],
+[14,7,14,'2 Chronicles 7:14'],[14,15,7,'2 Chronicles 15:7'],[15,7,10,'Ezra 7:10'],[16,8,10,'Nehemiah 8:10'],
+[17,4,14,'Esther 4:14'],[18,19,25,'Job 19:25'],[18,42,2,'Job 42:2'],
+[19,23,1,'Psalm 23:1'],[19,27,1,'Psalm 27:1'],[19,34,8,'Psalm 34:8'],[19,37,4,'Psalm 37:4'],[19,46,1,'Psalm 46:1'],[19,46,10,'Psalm 46:10'],[19,55,22,'Psalm 55:22'],[19,90,12,'Psalm 90:12'],[19,91,1,'Psalm 91:1'],[19,100,4,'Psalm 100:4'],[19,103,2,'Psalm 103:2'],[19,118,24,'Psalm 118:24'],[19,119,105,'Psalm 119:105'],[19,121,1,'Psalm 121:1'],[19,127,3,'Psalm 127:3'],[19,133,1,'Psalm 133:1'],[19,139,14,'Psalm 139:14'],[19,145,9,'Psalm 145:9'],
+[20,3,5,'Proverbs 3:5'],[20,4,23,'Proverbs 4:23'],[20,16,3,'Proverbs 16:3'],[20,17,17,'Proverbs 17:17'],[20,18,10,'Proverbs 18:10'],[20,22,6,'Proverbs 22:6'],[20,27,17,'Proverbs 27:17'],[20,31,25,'Proverbs 31:25'],
+[21,3,1,'Ecclesiastes 3:1'],[21,4,9,'Ecclesiastes 4:9'],[22,8,7,'Song of Songs 8:7'],
+[23,26,3,'Isaiah 26:3'],[23,40,31,'Isaiah 40:31'],[23,41,10,'Isaiah 41:10'],[23,43,2,'Isaiah 43:2'],[23,54,17,'Isaiah 54:17'],
+[24,29,11,'Jeremiah 29:11'],[24,33,3,'Jeremiah 33:3'],[25,3,22,'Lamentations 3:22'],[25,3,23,'Lamentations 3:23'],
+[26,36,26,'Ezekiel 36:26'],[27,2,20,'Daniel 2:20'],[28,6,3,'Hosea 6:3'],[29,2,25,'Joel 2:25'],[30,5,24,'Amos 5:24'],
+[31,1,17,'Obadiah 1:17'],[32,2,2,'Jonah 2:2'],[33,6,8,'Micah 6:8'],[34,1,7,'Nahum 1:7'],[35,3,19,'Habakkuk 3:19'],
+[36,3,17,'Zephaniah 3:17'],[37,2,4,'Haggai 2:4'],[38,4,6,'Zechariah 4:6'],[39,3,10,'Malachi 3:10'],
+[40,5,16,'Matthew 5:16'],[40,6,33,'Matthew 6:33'],[40,7,7,'Matthew 7:7'],[40,11,28,'Matthew 11:28'],[40,18,20,'Matthew 18:20'],[40,28,19,'Matthew 28:19'],
+[41,9,23,'Mark 9:23'],[41,10,27,'Mark 10:27'],[41,11,24,'Mark 11:24'],
+[42,1,37,'Luke 1:37'],[42,6,31,'Luke 6:31'],[42,12,32,'Luke 12:32'],
+[43,3,16,'John 3:16'],[43,10,10,'John 10:10'],[43,13,34,'John 13:34'],[43,14,6,'John 14:6'],[43,14,27,'John 14:27'],[43,15,5,'John 15:5'],[43,16,33,'John 16:33'],
+[44,1,8,'Acts 1:8'],[44,16,31,'Acts 16:31'],[44,20,35,'Acts 20:35'],
+[45,5,8,'Romans 5:8'],[45,8,18,'Romans 8:18'],[45,8,28,'Romans 8:28'],[45,10,9,'Romans 10:9'],[45,12,2,'Romans 12:2'],[45,12,12,'Romans 12:12'],[45,15,13,'Romans 15:13'],
+[46,10,13,'1 Corinthians 10:13'],[46,13,4,'1 Corinthians 13:4'],[46,13,13,'1 Corinthians 13:13'],[46,15,58,'1 Corinthians 15:58'],[46,16,14,'1 Corinthians 16:14'],
+[47,4,18,'2 Corinthians 4:18'],[47,5,7,'2 Corinthians 5:7'],[47,5,17,'2 Corinthians 5:17'],[47,12,9,'2 Corinthians 12:9'],
+[48,5,22,'Galatians 5:22'],[48,6,9,'Galatians 6:9'],
+[49,2,8,'Ephesians 2:8'],[49,3,20,'Ephesians 3:20'],[49,4,32,'Ephesians 4:32'],[49,6,2,'Ephesians 6:2'],[49,6,10,'Ephesians 6:10'],
+[50,1,6,'Philippians 1:6'],[50,4,6,'Philippians 4:6'],[50,4,8,'Philippians 4:8'],[50,4,13,'Philippians 4:13'],[50,4,19,'Philippians 4:19'],
+[51,3,14,'Colossians 3:14'],[51,3,17,'Colossians 3:17'],[51,3,23,'Colossians 3:23'],
+[52,5,16,'1 Thessalonians 5:16'],[52,5,18,'1 Thessalonians 5:18'],[53,3,3,'2 Thessalonians 3:3'],
+[54,4,12,'1 Timothy 4:12'],[55,1,7,'2 Timothy 1:7'],[55,3,16,'2 Timothy 3:16'],[56,3,5,'Titus 3:5'],[57,1,6,'Philemon 1:6'],
+[58,4,16,'Hebrews 4:16'],[58,10,23,'Hebrews 10:23'],[58,11,1,'Hebrews 11:1'],[58,12,1,'Hebrews 12:1'],[58,13,8,'Hebrews 13:8'],
+[59,1,5,'James 1:5'],[59,1,17,'James 1:17'],[59,4,8,'James 4:8'],
+[60,2,9,'1 Peter 2:9'],[60,5,7,'1 Peter 5:7'],[61,3,9,'2 Peter 3:9'],
+[62,1,9,'1 John 1:9'],[62,3,1,'1 John 3:1'],[62,4,19,'1 John 4:19'],
+[63,1,6,'2 John 1:6'],[64,1,2,'3 John 1:2'],[65,1,24,'Jude 1:24'],
+[66,3,20,'Revelation 3:20'],[66,21,4,'Revelation 21:4'],[66,22,13,'Revelation 22:13'],
+];
+async function fetchDailyVerse(){
+  const today=new Date().toDateString();
+  try{ const c=JSON.parse(localStorage.getItem('verse_cache')||'null'); if(c&&c.date===today&&c.text) return c; }catch(e){}
+  const now=new Date();
+  const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/86400000);
+  const [b,ch,vs,ref]=VERSE_REFS[(doy+now.getFullYear())%VERSE_REFS.length];
+  const r=await fetch('https://bolls.life/get-verse/NIV/'+b+'/'+ch+'/'+vs+'/');
+  if(!r.ok) throw new Error('verse api '+r.status);
+  const j=await r.json();
+  const out={date:today,ref:ref+' (NIV)',text:String(j.text||'').replace(/<[^>]*>/g,'').trim()};
+  if(!out.text) throw new Error('empty verse');
+  try{ localStorage.setItem('verse_cache',JSON.stringify(out)); }catch(e){}
+  return out;
 }
 function renderFaith(){
-  const vv=SETTINGS.verse||autoVerse();
-  document.getElementById('verseCard').innerHTML=`<div class="ref">${esc(vv.ref)}</div><div class="vtext">"${esc(vv.text)}"</div>`;
+  const vc=document.getElementById('verseCard');
+  if(SETTINGS.verse){
+    vc.innerHTML=`<div class="ref">${esc(SETTINGS.verse.ref)} · 📌 pinned</div><div class="vtext">"${esc(SETTINGS.verse.text)}"</div>`;
+  }else{
+    vc.innerHTML=`<div class="ref">Today\'s verse</div><div class="vtext" style="font-size:14px;color:var(--ink-soft)">Loading…</div>`;
+    fetchDailyVerse().then(vv=>{
+      if(!SETTINGS.verse) vc.innerHTML=`<div class="ref">${esc(vv.ref)}</div><div class="vtext">"${esc(vv.text)}"</div>`;
+    }).catch(()=>{
+      const vv=autoVerse();
+      vc.innerHTML=`<div class="ref">${esc(vv.ref)} (KJV)</div><div class="vtext">"${esc(vv.text)}"</div>`;
+    });
+  }
   const st=SETTINGS.study;
   document.getElementById('studyBody').innerHTML=st&&(st.title||st.text)
     ? `<b style="color:var(--ink)">${esc(st.title||'')}</b>${st.title&&st.text?'<br>':''}${esc(st.text||'')}`
