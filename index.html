@@ -247,11 +247,9 @@
       <div class="wave" id="wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
     </div>
     <audio id="familySong" src="song.mp3" preload="none"></audio>
-    <div class="tiles">
+    <div class="tiles" style="grid-template-columns:1fr 1fr">
       <button class="tile" onclick="go('reunion')"><span class="ic">🎪</span><h4>Reunion</h4></button>
-      <button class="tile" onclick="goTree()"><span class="ic">🌳</span><h4>Tree</h4></button>
       <button class="tile" onclick="go('recipes')"><span class="ic">🍲</span><h4>Recipes</h4></button>
-      <button class="tile" onclick="go('more')"><span class="ic">✨</span><h4>More</h4></button>
     </div>
     <div class="feed-head"><h3>Family Feed</h3></div>
     <div class="composer">
@@ -292,22 +290,14 @@
       <div class="prayer-banner"><h2 id="faithMotto">A family that prays together</h2><p>stays together</p></div>
       <div class="section-eyebrow">Scripture of the day <span class="admin-edit" data-admin onclick="openSheet('verseSheet')">✎ edit</span></div>
       <div class="verse-card" id="verseCard"></div>
+      <div class="divider-label">Watch & worship <span class="admin-edit" data-admin onclick="openSheet('watchSheet')">✎ set link</span></div>
+      <div id="watchBody" style="margin-bottom:6px"></div>
       <div class="divider-label">Prayer wall</div>
       <div class="composer" style="margin:0 0 12px">
         <textarea id="prayerText" placeholder="Share a prayer request…"></textarea>
         <div class="row"><button class="btn small" onclick="addPrayer()">🙏 Add to the wall</button></div>
       </div>
       <div id="prayerList"></div>
-    </div>
-  </div>
-
-  <!-- WATCH -->
-  <div class="screen" id="watch">
-    <div class="pad">
-      <div class="section-eyebrow">Watch & worship <span class="admin-edit" data-admin onclick="openSheet('watchSheet')">✎ set link</span></div>
-      <h2 class="section-title">Live & Replays</h2>
-      <p class="section-sub">Services stream on Facebook Live — nothing stored in the app.</p>
-      <div id="watchBody"></div>
     </div>
   </div>
 
@@ -331,16 +321,12 @@
     </div>
   </div>
 
-  <!-- MORE: HOF + SHOP -->
-  <div class="screen" id="more">
+  <!-- SHOP -->
+  <div class="screen" id="shop">
     <div class="pad">
-      <div class="section-eyebrow">Honoring our own</div>
-      <h2 class="section-title">Hall of Fame 🏆</h2>
-      <p class="section-sub">Achievements worth remembering, across every generation.</p>
-      <button class="btn gold" style="margin-bottom:14px" onclick="openSheet('hofSheet')">+ Nominate someone</button>
-      <div id="hofList"></div>
-      <div class="divider-label">Family shop</div>
-      <p class="section-sub">Merch & family-made goods. Link each item to wherever people can actually buy it.</p>
+      <div class="section-eyebrow">Wear it · taste it · rep it</div>
+      <h2 class="section-title">Willis Family Shop 🛍</h2>
+      <p class="section-sub">Merch & family-made goods. Every item links to wherever people can actually buy it.</p>
       <button class="btn gold" style="margin-bottom:14px" onclick="openSheet('shopSheet')">+ Add a product</button>
       <div id="shopList"></div>
     </div>
@@ -354,7 +340,7 @@
   <button class="navbtn" data-screen="tree" onclick="goTree()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Tree</button>
   <button class="navbtn" data-screen="calendar" onclick="go('calendar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Calendar</button>
   <button class="navbtn" data-screen="bible" onclick="go('bible')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Faith</button>
-  <button class="navbtn" data-screen="watch" onclick="go('watch')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Watch</button>
+  <button class="navbtn" data-screen="shop" onclick="go('shop')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>Shop</button>
 </div>
 
 <!-- ======== SHEETS (forms) ======== -->
@@ -525,7 +511,7 @@ async function enterApp(){
   renderAll();
 }
 async function refreshAll(){ toast('Checking for family updates…'); await loadAll(); renderAll(); toast('Up to date ✨'); }
-function renderAll(){ renderToday(); renderFeed(); renderTreeIndex(); renderCalendar(); renderFaith(); renderWatch(); renderReunion(); renderRecipes(); renderHOF(); renderShop(); }
+function renderAll(){ renderToday(); renderFeed(); renderTreeIndex(); renderCalendar(); renderFaith(); renderWatch(); renderReunion(); renderRecipes(); renderShop(); }
 
 /* ================= TODAY ================= */
 function nextBday(m){
@@ -794,9 +780,9 @@ async function delRow(table,id){
   try{
     const {error}=await SB.from(table).delete().eq('id',id);
     if(error) throw error;
-    const map={shop:SHOP,hof:HOF,recipes:RECIPES,events:EVENTS};
+    const map={shop:SHOP,recipes:RECIPES,events:EVENTS};
     const arr=map[table]; const i=arr.findIndex(x=>x.id===id); if(i>-1) arr.splice(i,1);
-    ({shop:renderShop,hof:renderHOF,recipes:renderRecipes,events:renderCalendar})[table]();
+    ({shop:renderShop,recipes:renderRecipes,events:renderCalendar})[table]();
     toast('Deleted 🗑');
   }catch(e){ err(e,'Deleting'); }
 }
@@ -971,32 +957,6 @@ async function addRecipe(editId){
     }
   }catch(e){ err(e,'Saving recipe'); }
 }
-function renderHOF(){
-  const el=document.getElementById('hofList');
-  el.innerHTML=HOF.length?HOF.map(x=>`
-    <div class="card" style="display:flex;gap:13px;align-items:flex-start">
-      <div style="width:44px;height:44px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-size:20px;background:radial-gradient(circle at 50% 38%,var(--gold),var(--gold-deep))">${esc(x.emoji||'🏆')}</div>
-      <div><h4 style="color:var(--green);font-size:15px">${esc(x.name)}</h4>
-      <p style="font-size:10.5px;color:var(--clay);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:1px 0 3px">${esc(x.year)} · ${esc(x.cat)} <span class="mini-act" onclick="openSheet('hofSheet','${x.id}')">✎</span><span class="mini-act" onclick="delRow('hof','${x.id}')">🗑</span></p>
-      <p style="font-size:12.5px;color:var(--ink-soft)">${esc(x.descr)}</p></div></div>`).join('')
-    :'<div class="empty">No inductees yet. Nominate the first family legend! 🏆</div>';
-}
-async function addHOF(editId){
-  const n=v('hfName'); if(!n){ toast('Who are we honoring?'); return; }
-  const row={name:n,year:v('hfYear')||String(new Date().getFullYear()),cat:v('hfCat')||'Family',descr:v('hfDesc'),emoji:v('hfEmoji')||'🏆'};
-  try{
-    if(editId){
-      const {error}=await SB.from('hof').update(row).eq('id',editId);
-      if(error) throw error;
-      const i=HOF.findIndex(x=>x.id===editId); if(i>-1) HOF[i]=Object.assign({},HOF[i],row);
-      closeSheet(); renderHOF(); toast('Updated 🏆');
-    }else{
-      const {data,error}=await SB.from('hof').insert(row).select().single();
-      if(error) throw error;
-      HOF.unshift(data); closeSheet(); renderHOF(); toast('Inducted 🏆');
-    }
-  }catch(e){ err(e,'Saving'); }
-}
 function renderShop(){
   const el=document.getElementById('shopList');
   el.innerHTML=SHOP.length?SHOP.map(p=>`
@@ -1009,9 +969,35 @@ function renderShop(){
     </div>`).join('')
     :'<div class="empty">The shop is empty. Add tees, spice blends, whatever your family makes. 🛍</div>';
 }
+function fileToJpeg(file,maxW){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>{ const im=new Image();
+      im.onload=()=>{ const s=Math.min(1,maxW/im.width);
+        const c=document.createElement('canvas');
+        c.width=Math.round(im.width*s); c.height=Math.round(im.height*s);
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        c.toBlob(b=>b?res(b):rej(new Error('compress failed')),'image/jpeg',.82); };
+      im.onerror=rej; im.src=r.result; };
+    r.onerror=rej; r.readAsDataURL(file);
+  });
+}
+async function uploadPhoto(file){
+  const blob=await fileToJpeg(file,900);
+  const path='shop/'+Date.now()+'.jpg';
+  const {error}=await SB.storage.from('family').upload(path,blob,{contentType:'image/jpeg'});
+  if(error) throw error;
+  return SB.storage.from('family').getPublicUrl(path).data.publicUrl;
+}
 async function addShop(editId){
   const n=v('spName'); if(!n){ toast('Name the product'); return; }
-  const row={name:n,price:(v('spPrice')||'—').replace(/^\$+/,''),link:v('spLink'),emoji:v('spEmoji')||'🛍',img:v('spImg'),descr:v('spDesc')};
+  const row={name:n,price:(v('spPrice')||'—').replace(/^\$+/,''),link:v('spLink'),emoji:v('spEmoji')||'🛍',descr:v('spDesc')};
+  const fEl=document.getElementById('spFile');
+  try{
+    if(fEl&&fEl.files&&fEl.files[0]){ toast('📤 Uploading photo…'); row.img=await uploadPhoto(fEl.files[0]); }
+    else if(editId){ const cur=SHOP.find(x=>x.id===editId); row.img=(cur&&cur.img)||''; }
+    else row.img='';
+  }catch(e){ err(e,'Photo upload'); return; }
   try{
     if(editId){
       const {error}=await SB.from('shop').update(row).eq('id',editId);
@@ -1086,21 +1072,13 @@ const SHEETS={
       <label>Ingredients & steps</label><textarea id="rcNotes" rows="5" placeholder="Everything they need to make it…">${r?esc(r.notes):''}</textarea>
       <button class="btn" onclick="addRecipe('${editId||''}')">${r?'Save changes':'Save recipe'}</button>
     </div>`},
-  hofSheet:(editId)=>{const x=editId?HOF.find(y=>y.id===editId):null;return `<span class="close-x" onclick="closeSheet()">×</span><h3>${x?'Edit inductee':'Nominate for the Hall of Fame'}</h3>
-    <div class="form-grid">
-      <label>Name</label><input id="hfName" placeholder="Maria Willis" value="${x?esc(x.name):''}">
-      <div class="frow"><div><label>Year</label><input id="hfYear" type="number" placeholder="2026" value="${x?esc(x.year):''}"></div>
-      <div><label>Category</label><input id="hfCat" placeholder="Athletics" value="${x?esc(x.cat):''}"></div></div>
-      <label>What they did</label><textarea id="hfDesc" rows="3" placeholder="Inducted into the FVSU Athletics Hall of Fame…">${x?esc(x.descr):''}</textarea>
-      <label>Emoji</label><input id="hfEmoji" placeholder="🏀" value="${x?esc(x.emoji):''}">
-      <button class="btn" onclick="addHOF('${editId||''}')">${x?'Save changes':'Induct them 🏆'}</button>
-    </div>`},
   shopSheet:(editId)=>{const p=editId?SHOP.find(y=>y.id===editId):null;return `<span class="close-x" onclick="closeSheet()">×</span><h3>${p?'Edit product':'Add a product'}</h3>
     <div class="form-grid">
       <label>Product name</label><input id="spName" placeholder="Reunion Tour Tee" value="${p?esc(p.name):''}">
       <div class="frow"><div><label>Price (number only)</label><input id="spPrice" placeholder="28" value="${p?esc(String(p.price).replace(/^\$+/,'')):''}"></div>
       <div><label>Emoji</label><input id="spEmoji" placeholder="👕" value="${p?esc(p.emoji):''}"></div></div>
-      <label>Photo link (optional)</label><input id="spImg" placeholder="https://… (a picture of it)" value="${p?esc(p.img||''):''}">
+      <label>Product photo (from your library)</label><input id="spFile" type="file" accept="image/*">
+      ${p&&p.img?`<p style="font-size:11px;color:var(--ink-soft)">Current photo stays unless you pick a new one.</p>`:''}
       <label>Short description (optional)</label><input id="spDesc" placeholder="Soft cotton, all 8 sibling names on back" value="${p?esc(p.descr||''):''}">
       <label>Buy link (optional)</label><input id="spLink" placeholder="https://…" value="${p?esc(p.link):''}">
       <button class="btn" onclick="addShop('${editId||''}')">${p?'Save changes':'Add product'}</button>
