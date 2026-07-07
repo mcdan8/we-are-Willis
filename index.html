@@ -355,7 +355,11 @@ function initSB(){
   const url=SB_URL||localStorage.getItem('sb_url'), key=SB_KEY||localStorage.getItem('sb_key');
   SB=window.supabase.createClient(url,key);
 }
-function err(e,label){ console.error(label,e); toast('⚠️ '+(label||'Error')+': '+String(e.message||e).slice(0,90)); }
+function err(e,label){
+  console.error(label,e);
+  let msg=e&&e.message?e.message:(typeof e==='object'?JSON.stringify(e):String(e));
+  toast('⚠️ '+(label||'Error')+': '+String(msg).slice(0,140));
+}
 
 /* ================= STATE ================= */
 let F=null, ME=null;
@@ -370,6 +374,10 @@ function crestHTML(px){ return isWillis()? `<img src="${WM_W}" style="height:${p
 /* ================= BOOT ================= */
 async function boot(){
   try{ ME=JSON.parse(localStorage.getItem('weare_me')||'null'); }catch(e){ ME=null; }
+  if(!window.supabase){
+    document.getElementById('gateInner').innerHTML='<div class="bigcrest">W</div><span class="weare">We Are</span><span class="famname script">Willis</span><div class="note" style="margin-top:18px;font-size:13px">⚠️ This preview can\'t reach the family database.<br><br>Open the app at its real home:<br><b style="color:var(--gold)">mcdan8.github.io/we-are-Willis</b></div>';
+    return;
+  }
   if(!haveCreds()){ renderConnect(); return; }
   initSB();
   await loadFamily();
