@@ -199,6 +199,33 @@
   .wave.playing span{animation:eq .9s ease-in-out infinite}
   .wave span:nth-child(2){animation-delay:.1s}.wave span:nth-child(3){animation-delay:.2s}.wave span:nth-child(4){animation-delay:.3s}.wave span:nth-child(5){animation-delay:.15s}.wave span:nth-child(6){animation-delay:.25s}.wave span:nth-child(7){animation-delay:.05s}
   @keyframes eq{0%,100%{height:22%}50%{height:96%}}
+  .shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .product{background:var(--card);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s}
+  .product:active{transform:scale(.97)}
+  .product .pimg{aspect-ratio:1;background:rgba(232,178,58,.14);display:grid;place-items:center;font-size:42px;overflow:hidden}
+  .product .pimg img{width:100%;height:100%;object-fit:cover}
+  .product .pinfo{padding:11px 12px 12px}
+  .product .pname{font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.25}
+  .product .pdesc{font-size:10.5px;color:var(--ink-soft);margin:2px 0 6px;min-height:14px}
+  .product .pprice{font-family:'Fraunces',serif;font-weight:700;color:var(--green);font-size:16px}
+  .product .view{margin-top:8px;width:100%;background:var(--green);color:#fff;padding:8px;border-radius:11px;font-size:12.5px;font-weight:600;text-align:center}
+  .psheet-img{width:100%;border-radius:16px;margin-bottom:12px;max-height:320px;object-fit:cover}
+  .yb-year{display:flex;align-items:center;gap:10px;margin:18px 0 10px}
+  .yb-year .y{font-family:'Fraunces',serif;font-weight:700;font-size:20px;color:var(--green)}
+  .yb-year .l{flex:1;height:1px;background:var(--line)}
+  .yb-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .yb-cell{border-radius:14px;overflow:hidden;position:relative;box-shadow:var(--shadow);background:var(--green-deep);aspect-ratio:1}
+  .yb-cell img{width:100%;height:100%;object-fit:cover}
+  .yb-cell .cap{position:absolute;left:0;right:0;bottom:0;padding:14px 10px 8px;background:linear-gradient(to top,rgba(14,22,15,.85),transparent);color:#fff;font-size:10.5px;font-weight:600}
+  .yb-cell.wide{grid-column:span 2;aspect-ratio:2/1}
+  .yb-del{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.45);color:#fff;border-radius:50%;width:26px;height:26px;display:grid;place-items:center;font-size:12px;cursor:pointer}
+  .tour-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .tour-row:last-child{border-bottom:none}
+  .tour-row .yr{font-family:'Fraunces',serif;font-weight:800;color:var(--gold-deep);width:46px;flex-shrink:0}
+  .tour-row.next .loc{font-weight:700;color:var(--green)}
+  .tour-row.next .yr{color:var(--clay)}
+  .photo-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--green);cursor:pointer}
+  .post-photo{width:100%;display:block}
   .mini-act{cursor:pointer;color:var(--clay);font-size:14px;padding:2px 6px;font-weight:700}
   .toast{position:fixed;bottom:118px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#F6F1E4;padding:12px 20px;border-radius:30px;font-size:13px;font-weight:500;z-index:200;opacity:0;transition:.3s;pointer-events:none;box-shadow:var(--shadow-lg);max-width:90%;text-align:center}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -247,14 +274,18 @@
       <div class="wave" id="wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
     </div>
     <audio id="familySong" src="song.mp3" preload="none"></audio>
-    <div class="tiles" style="grid-template-columns:1fr 1fr">
+    <div class="tiles" style="grid-template-columns:repeat(3,1fr)">
       <button class="tile" onclick="go('reunion')"><span class="ic">🎪</span><h4>Reunion</h4></button>
+      <button class="tile" onclick="go('yearbook')"><span class="ic">📖</span><h4>Yearbook</h4></button>
       <button class="tile" onclick="go('recipes')"><span class="ic">🍲</span><h4>Recipes</h4></button>
     </div>
     <div class="feed-head"><h3>Family Feed</h3></div>
     <div class="composer">
       <textarea id="postText" placeholder="Share news, a memory, a shout-out…"></textarea>
-      <div class="row"><button class="btn small" onclick="addPost()">Post</button></div>
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <label class="photo-btn">📷 <span id="postFileName">Add photo</span><input id="postFile" type="file" accept="image/*" style="display:none" onchange="document.getElementById('postFileName').textContent=this.files.length?'1 photo ready ✓':'Add photo'"></label>
+        <button class="btn small" onclick="addPost()">Post</button>
+      </div>
     </div>
     <div id="feedList"></div>
   </div>
@@ -292,6 +323,7 @@
       <div class="verse-card" id="verseCard"></div>
       <div class="divider-label">Watch & worship <span class="admin-edit" data-admin onclick="openSheet('watchSheet')">✎ set link</span></div>
       <div id="watchBody" style="margin-bottom:6px"></div>
+      <div class="card"><h4 style="color:var(--green);font-size:16px;margin-bottom:5px">📖 Bible Study <span class="admin-edit" data-admin onclick="openSheet('studySheet')">✎ edit</span></h4><div id="studyBody" style="font-size:13px;color:var(--ink-soft);white-space:pre-wrap"></div></div>
       <div class="divider-label">Prayer wall</div>
       <div class="composer" style="margin:0 0 12px">
         <textarea id="prayerText" placeholder="Share a prayer request…"></textarea>
@@ -318,6 +350,17 @@
       <p class="section-sub">The dishes that bring us home.</p>
       <button class="btn gold" style="margin-bottom:14px" onclick="openSheet('recipeSheet')">+ Add a recipe</button>
       <div id="recipeList"></div>
+    </div>
+  </div>
+
+  <!-- YEARBOOK -->
+  <div class="screen" id="yearbook">
+    <div class="pad">
+      <div class="section-eyebrow">The Willis story</div>
+      <h2 class="section-title">Family Yearbook</h2>
+      <p class="section-sub">Every year, captured. The photos & memories we'll keep forever.</p>
+      <button class="btn gold" style="margin-bottom:14px" onclick="openSheet('ybSheet')">+ Add a photo to the yearbook</button>
+      <div id="ybBody"></div>
     </div>
   </div>
 
@@ -370,7 +413,7 @@ function err(e,label){
 
 /* ================= STATE ================= */
 let F=null, ME=null;
-let MEMBERS={}, POSTS=[], EVENTS=[], RECIPES=[], PRAYERS=[], HOF=[], SHOP=[], SETTINGS={};
+let MEMBERS={}, POSTS=[], EVENTS=[], RECIPES=[], PRAYERS=[], HOF=[], SHOP=[], YEARBOOK=[], SETTINGS={};
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=n=>{const p=String(n).trim().split(/\s+/);return ((p[0]||'')[0]||'?').toUpperCase()+((p[1]||'')[0]||'').toUpperCase();};
@@ -480,7 +523,7 @@ async function enterFamily(){
 /* ================= LOAD & ENTER ================= */
 async function loadAll(){
   try{
-    const [m,p,e,r,pr,hf,sh,st]=await Promise.all([
+    const [m,p,e,r,pr,hf,sh,st,yb]=await Promise.all([
       SB.from('members').select('*'),
       SB.from('posts').select('*').order('created_at',{ascending:false}).limit(100),
       SB.from('events').select('*'),
@@ -489,8 +532,10 @@ async function loadAll(){
       SB.from('hof').select('*').order('created_at',{ascending:false}),
       SB.from('shop').select('*').order('created_at',{ascending:false}),
       SB.from('settings').select('*'),
+      SB.from('yearbook').select('*').order('created_at',{ascending:false}),
     ]);
-    for(const x of [m,p,e,r,pr,hf,sh,st]) if(x.error) throw x.error;
+    for(const x of [m,p,e,r,pr,hf,sh,st,yb]) if(x.error) throw x.error;
+    YEARBOOK=yb.data||[];
     MEMBERS={}; (m.data||[]).forEach(row=>{ MEMBERS[row.id]={name:row.name,bmo:row.bmo,bdy:row.bdy,byr:row.byr,city:row.city||'',parents:row.parents||[],spouse_of:row.spouse_of||null}; });
     POSTS=p.data||[]; EVENTS=e.data||[]; RECIPES=r.data||[]; PRAYERS=pr.data||[]; HOF=hf.data||[]; SHOP=sh.data||[];
     SETTINGS={}; (st.data||[]).forEach(row=>{ SETTINGS[row.key]=row.value; });
@@ -511,7 +556,7 @@ async function enterApp(){
   renderAll();
 }
 async function refreshAll(){ toast('Checking for family updates…'); await loadAll(); renderAll(); toast('Up to date ✨'); }
-function renderAll(){ renderToday(); renderFeed(); renderTreeIndex(); renderCalendar(); renderFaith(); renderWatch(); renderReunion(); renderRecipes(); renderShop(); }
+function renderAll(){ renderToday(); renderFeed(); renderTreeIndex(); renderCalendar(); renderFaith(); renderWatch(); renderReunion(); renderRecipes(); renderShop(); renderYearbook(); }
 
 /* ================= TODAY ================= */
 function nextBday(m){
@@ -578,16 +623,23 @@ function renderFeed(){
     <div class="post">
       <div class="post-top"><div class="avatar">${initials(p.author)}</div>
         <div class="who"><div class="n">${esc(p.author)}</div><div class="m">${timeAgo(new Date(p.created_at).getTime())}</div></div></div>
+      ${p.img?`<img class="post-photo" src="${esc(p.img)}" loading="lazy">`:''}
       <div class="post-body"><p>${esc(p.body)}</p></div>
       <div class="post-actions"><span onclick="likePost('${p.id}')">❤️ ${p.likes||0}</span></div>
     </div>`).join('');
 }
 async function addPost(){
-  const t=v('postText'); if(!t){ toast('Write something first'); return; }
+  const t=v('postText');
+  const fEl=document.getElementById('postFile');
+  const hasPhoto=fEl&&fEl.files&&fEl.files[0];
+  if(!t&&!hasPhoto){ toast('Write something or add a photo'); return; }
+  const row={author:ME.name,body:t||''};
   try{
-    const {data,error}=await SB.from('posts').insert({author:ME.name,body:t}).select().single();
+    if(hasPhoto){ toast('📤 Uploading photo…'); row.img=await uploadPhoto(fEl.files[0],'feed'); }
+    const {data,error}=await SB.from('posts').insert(row).select().single();
     if(error) throw error;
     document.getElementById('postText').value='';
+    if(fEl){ fEl.value=''; document.getElementById('postFileName').textContent='Add photo'; }
     POSTS.unshift(data); renderFeed(); toast('Posted to the family ✨');
   }catch(e){ err(e,'Posting'); }
 }
@@ -780,9 +832,9 @@ async function delRow(table,id){
   try{
     const {error}=await SB.from(table).delete().eq('id',id);
     if(error) throw error;
-    const map={shop:SHOP,recipes:RECIPES,events:EVENTS};
+    const map={shop:SHOP,recipes:RECIPES,events:EVENTS,yearbook:YEARBOOK};
     const arr=map[table]; const i=arr.findIndex(x=>x.id===id); if(i>-1) arr.splice(i,1);
-    ({shop:renderShop,recipes:renderRecipes,events:renderCalendar})[table]();
+    ({shop:renderShop,recipes:renderRecipes,events:renderCalendar,yearbook:renderYearbook})[table]();
     toast('Deleted 🗑');
   }catch(e){ err(e,'Deleting'); }
 }
@@ -819,6 +871,10 @@ function autoVerse(){
 function renderFaith(){
   const vv=SETTINGS.verse||autoVerse();
   document.getElementById('verseCard').innerHTML=`<div class="ref">${esc(vv.ref)}</div><div class="vtext">"${esc(vv.text)}"</div>`;
+  const st=SETTINGS.study;
+  document.getElementById('studyBody').innerHTML=st&&(st.title||st.text)
+    ? `<b style="color:var(--ink)">${esc(st.title||'')}</b>${st.title&&st.text?'<br>':''}${esc(st.text||'')}`
+    : 'Nothing set this week — the family admin can add the current study with ✎.';
   const el=document.getElementById('prayerList');
   el.innerHTML=PRAYERS.length?PRAYERS.map(p=>`
     <div class="card"><p style="font-size:14px">🙏 ${esc(p.body)}</p>
@@ -879,7 +935,7 @@ function renderReunion(){
   const el=document.getElementById('reunionBody');
   const r=SETTINGS.reunion;
   if(!r||!r.dateISO){
-    el.innerHTML=`<div class="empty">No reunion planned yet. The family admin can set the next one with ✎ above — city, dates, and the countdown starts automatically.</div>`;
+    el.innerHTML=`<div class="empty">No reunion planned yet. The family admin can set the next one with ✎ above — city, dates, and the countdown starts automatically.</div>`+extraReunionCards();
     return;
   }
   const d=new Date(r.dateISO+'T00:00:00');
@@ -898,7 +954,9 @@ function renderReunion(){
     <div class="countdown" id="cdRow"></div>
     <div class="card"><h4 style="color:var(--green);font-size:16px;margin-bottom:6px">✅ RSVP</h4>
       <p style="font-size:13px;color:var(--ink-soft);margin-bottom:10px"><span id="rsvpCount">${(r.rsvp||[]).length}</span> family member${(r.rsvp||[]).length===1?'':'s'} confirmed so far.</p>
-      <button class="pill pill-gold" onclick="rsvp()">🎉 I'm coming!</button></div>`;
+      ${(r.rsvp||[]).length?`<p style="font-size:11.5px;color:var(--ink-soft);margin-bottom:10px">${(r.rsvp||[]).map(esc).join(' · ')}</p>`:''}
+      <button class="pill pill-gold" onclick="rsvp()">🎉 I'm coming!</button></div>`
+    +extraReunionCards();
   tick();
   function tick(){
     let diff=Math.max(0,d-new Date());
@@ -911,6 +969,33 @@ function renderReunion(){
       <div class="cd-box"><div class="num">${String(mins).padStart(2,'0')}</div><div class="unit">Mins</div></div>`;
   }
   clearInterval(window._cdT); window._cdT=setInterval(tick,60000);
+}
+function extraReunionCards(){
+  const sc=SETTINGS.schedule, tr=SETTINGS.travel, to=SETTINGS.tour;
+  let html='';
+  html+=`<div class="card"><h4 style="color:var(--green);font-size:16px;margin-bottom:6px">📋 Weekend Schedule <span class="admin-edit" data-admin style="display:${amAdminNow()?'':'none'}" onclick="openSheet('schedSheet')">✎</span></h4>
+    <p style="font-size:13px;color:var(--ink-soft);line-height:1.7;white-space:pre-wrap">${sc&&sc.text?esc(sc.text):'Coming soon.'}</p></div>`;
+  html+=`<div class="card"><h4 style="color:var(--green);font-size:16px;margin-bottom:6px">🏨 Travel & Hotels <span class="admin-edit" data-admin style="display:${amAdminNow()?'':'none'}" onclick="openSheet('travelSheet')">✎</span></h4>
+    <p style="font-size:13px;color:var(--ink-soft);margin-bottom:${tr&&tr.link?'10px':'0'};white-space:pre-wrap">${tr&&tr.text?esc(tr.text):'Details coming soon.'}</p>
+    ${tr&&tr.link?`<a class="pill pill-gold" style="text-decoration:none" href="${esc(tr.link)}" target="_blank" rel="noopener">View travel info →</a>`:''}</div>`;
+  if(to&&to.text){
+    const lines=to.text.split('\n').map(s=>s.trim()).filter(Boolean);
+    html+=`<div class="card"><h4 style="color:var(--green);font-size:16px;margin-bottom:8px">🗺️ Reunion Tour History <span class="admin-edit" data-admin style="display:${amAdminNow()?'':'none'}" onclick="openSheet('tourSheet')">✎</span></h4>`;
+    html+=lines.map((ln,i)=>{
+      const sp=ln.indexOf(' ');
+      const yr=sp>0?ln.slice(0,sp):ln, loc=sp>0?ln.slice(sp+1):'';
+      return `<div class="tour-row${i===lines.length-1?' next':''}"><span class="yr">${esc(yr)}</span><span class="loc">${esc(loc)}${i===lines.length-1?' — next stop!':''}</span></div>`;
+    }).join('');
+    html+='</div>';
+  }else{
+    html+=`<div class="card"><h4 style="color:var(--green);font-size:16px;margin-bottom:6px">🗺️ Reunion Tour History <span class="admin-edit" data-admin style="display:${amAdminNow()?'':'none'}" onclick="openSheet('tourSheet')">✎</span></h4>
+    <p style="font-size:13px;color:var(--ink-soft)">Every city, every year — the admin can add the list with ✎.</p></div>`;
+  }
+  return html;
+}
+function amAdminNow(){
+  const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+  return ME&&F&&norm(ME.name)===norm(F.admin_name);
 }
 async function rsvp(){
   const r=SETTINGS.reunion; if(!r)return;
@@ -959,15 +1044,26 @@ async function addRecipe(editId){
 }
 function renderShop(){
   const el=document.getElementById('shopList');
-  el.innerHTML=SHOP.length?SHOP.map(p=>`
-    <div class="card" style="display:flex;gap:13px;align-items:center">
-      <div style="width:56px;height:56px;border-radius:14px;flex-shrink:0;display:grid;place-items:center;font-size:26px;background:rgba(232,178,58,.16);overflow:hidden">${p.img?`<img src="${esc(p.img)}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='🛍'">`:esc(p.emoji||'🛍')}</div>
-      <div style="flex:1"><h4 style="color:var(--green);font-size:15px">${esc(p.name)}</h4>
-      ${p.descr?`<p style="font-size:11.5px;color:var(--ink-soft);margin:1px 0 2px">${esc(p.descr)}</p>`:''}
-      <p style="font-size:13px;font-weight:700">$${esc(String(p.price).replace(/^\$+/,''))} <span class="mini-act" onclick="openSheet('shopSheet','${p.id}')">✎</span><span class="mini-act" onclick="delRow('shop','${p.id}')">🗑</span></p></div>
-      ${p.link?`<a class="btn small" style="text-decoration:none" href="${esc(p.link)}" target="_blank" rel="noopener">Buy</a>`:''}
-    </div>`).join('')
-    :'<div class="empty">The shop is empty. Add tees, spice blends, whatever your family makes. 🛍</div>';
+  if(!SHOP.length){ el.innerHTML='<div class="empty">The shop is empty. Add the spice blends & tees! 🛍</div>'; return; }
+  const cats=[['spice','🌶 Willis Family Spice Co.'],['merch','👕 Family Merch'],['other','✨ More goods']];
+  let html='';
+  cats.forEach(([key,label])=>{
+    const items=SHOP.filter(p=>(p.category||'merch')===key);
+    if(!items.length) return;
+    html+=`<div class="divider-label">${label}</div><div class="shop-grid">`;
+    html+=items.map(p=>`
+      <div class="product" onclick="openSheet('productSheet','${p.id}')">
+        <div class="pimg">${p.img?`<img src="${esc(p.img)}" loading="lazy">`:esc(p.emoji||'🛍')}</div>
+        <div class="pinfo">
+          <div class="pname">${esc(p.name)}</div>
+          <div class="pdesc">${esc(p.descr||'')}</div>
+          <div class="pprice">$${esc(String(p.price).replace(/^\$+/,''))}</div>
+          <div class="view">View & buy</div>
+        </div>
+      </div>`).join('');
+    html+='</div>';
+  });
+  el.innerHTML=html;
 }
 function fileToJpeg(file,maxW){
   return new Promise((res,rej)=>{
@@ -982,19 +1078,19 @@ function fileToJpeg(file,maxW){
     r.onerror=rej; r.readAsDataURL(file);
   });
 }
-async function uploadPhoto(file){
+async function uploadPhoto(file,prefix){
   const blob=await fileToJpeg(file,900);
-  const path='shop/'+Date.now()+'.jpg';
+  const path=(prefix||'shop')+'/'+Date.now()+'.jpg';
   const {error}=await SB.storage.from('family').upload(path,blob,{contentType:'image/jpeg'});
   if(error) throw error;
   return SB.storage.from('family').getPublicUrl(path).data.publicUrl;
 }
 async function addShop(editId){
   const n=v('spName'); if(!n){ toast('Name the product'); return; }
-  const row={name:n,price:(v('spPrice')||'—').replace(/^\$+/,''),link:v('spLink'),emoji:v('spEmoji')||'🛍',descr:v('spDesc')};
+  const row={name:n,price:(v('spPrice')||'—').replace(/^\$+/,''),link:v('spLink'),emoji:v('spEmoji')||'🛍',descr:v('spDesc'),category:v('spCat')||'merch'};
   const fEl=document.getElementById('spFile');
   try{
-    if(fEl&&fEl.files&&fEl.files[0]){ toast('📤 Uploading photo…'); row.img=await uploadPhoto(fEl.files[0]); }
+    if(fEl&&fEl.files&&fEl.files[0]){ toast('📤 Uploading photo…'); row.img=await uploadPhoto(fEl.files[0],'shop'); }
     else if(editId){ const cur=SHOP.find(x=>x.id===editId); row.img=(cur&&cur.img)||''; }
     else row.img='';
   }catch(e){ err(e,'Photo upload'); return; }
@@ -1011,6 +1107,48 @@ async function addShop(editId){
     }
   }catch(e){ err(e,'Saving product'); }
 }
+
+function renderYearbook(){
+  const el=document.getElementById('ybBody');
+  if(!YEARBOOK.length){ el.innerHTML='<div class="empty">The yearbook is empty. Add the first memory! 📖</div>'; return; }
+  const years={};
+  YEARBOOK.forEach(x=>{ (years[x.year]=years[x.year]||[]).push(x); });
+  let html='';
+  Object.keys(years).map(Number).sort((a,b)=>b-a).forEach(y=>{
+    html+=`<div class="yb-year"><span class="y">${y}</span><span class="l"></span></div><div class="yb-grid">`;
+    html+=years[y].map((x,i)=>`
+      <div class="yb-cell${i===0?' wide':''}">
+        ${x.img?`<img src="${esc(x.img)}" loading="lazy">`:''}
+        <span class="yb-del" onclick="delRow('yearbook','${x.id}')">🗑</span>
+        <div class="cap">${esc(x.caption)}</div>
+      </div>`).join('');
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+async function addYb(){
+  const y=parseInt(v('ybYear')); if(!y){ toast('Enter a year'); return; }
+  const fEl=document.getElementById('ybFile');
+  if(!(fEl&&fEl.files&&fEl.files[0])){ toast('Pick a photo'); return; }
+  try{
+    toast('📤 Uploading photo…');
+    const img=await uploadPhoto(fEl.files[0],'yearbook');
+    const {data,error}=await SB.from('yearbook').insert({year:y,caption:v('ybCap'),img}).select().single();
+    if(error) throw error;
+    YEARBOOK.unshift(data); closeSheet(); renderYearbook(); toast('Added to the '+y+' yearbook 📖');
+  }catch(e){ err(e,'Adding to yearbook'); }
+}
+async function saveSetting(key,val,after,msg){
+  try{
+    const {error}=await SB.from('settings').upsert({key,value:val});
+    if(error) throw error;
+    SETTINGS[key]=val; closeSheet(); after(); toast(msg);
+  }catch(e){ err(e,'Saving'); }
+}
+function saveStudy(){ saveSetting('study',{title:v('stTitle'),text:v('stText')},renderFaith,'Study saved 📖'); }
+function saveSched(){ saveSetting('schedule',{text:v('scText')},renderReunion,'Schedule saved 📋'); }
+function saveTravel(){ saveSetting('travel',{text:v('trText'),link:v('trLink')},renderReunion,'Travel info saved 🏨'); }
+function saveTour(){ saveSetting('tour',{text:v('toText')},renderReunion,'Tour history saved 🗺'); }
 
 /* ================= SHEETS ================= */
 const SHEETS={
@@ -1072,9 +1210,60 @@ const SHEETS={
       <label>Ingredients & steps</label><textarea id="rcNotes" rows="5" placeholder="Everything they need to make it…">${r?esc(r.notes):''}</textarea>
       <button class="btn" onclick="addRecipe('${editId||''}')">${r?'Save changes':'Save recipe'}</button>
     </div>`},
+  productSheet:(id)=>{
+    const p=SHOP.find(x=>x.id===id); if(!p) return '<span class="close-x" onclick="closeSheet()">×</span><p>Not found.</p>';
+    return `<span class="close-x" onclick="closeSheet()">×</span>
+    ${p.img?`<img class="psheet-img" src="${esc(p.img)}">`:`<div class="psheet-img" style="display:grid;place-items:center;font-size:60px;background:rgba(232,178,58,.14)">${esc(p.emoji||'🛍')}</div>`}
+    <h3 style="margin-bottom:2px">${esc(p.name)}</h3>
+    <p style="font-family:'Fraunces',serif;font-weight:700;color:var(--green);font-size:22px;margin-bottom:8px">$${esc(String(p.price).replace(/^\$+/,''))}</p>
+    <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:16px">${esc(p.descr||'A Willis family original.')}</p>
+    ${p.link?`<a class="btn" style="display:block;text-decoration:none;text-align:center" href="${esc(p.link)}" target="_blank" rel="noopener">🛍 Buy now</a>`:`<p style="font-size:12px;color:var(--ink-soft);text-align:center;background:var(--paper);border-radius:12px;padding:12px">💬 Message ${esc(F.admin_name)} to order — buy link coming soon.</p>`}
+    <div style="display:flex;justify-content:center;gap:16px;margin-top:14px">
+      <span class="mini-act" onclick="openSheet('shopSheet','${p.id}')">✎ Edit</span>
+      <span class="mini-act" onclick="closeSheet();delRow('shop','${p.id}')">🗑 Remove</span>
+    </div>`;
+  },
+  ybSheet:()=>`<span class="close-x" onclick="closeSheet()">×</span><h3>Add to the yearbook</h3>
+    <div class="form-grid">
+      <label>Year</label><input id="ybYear" type="number" value="${new Date().getFullYear()}">
+      <label>Caption</label><input id="ybCap" placeholder="Tampa reunion — the whole family">
+      <label>Photo</label><input id="ybFile" type="file" accept="image/*">
+      <button class="btn" onclick="addYb()">Add to the yearbook 📖</button>
+    </div>`,
+  studySheet:()=>{const s=SETTINGS.study||{};return `<span class="close-x" onclick="closeSheet()">×</span><h3>Bible study</h3>
+    <div class="form-grid">
+      <label>This week's title</label><input id="stTitle" value="${esc(s.title||'')}" placeholder="This Week: Family & Faith">
+      <label>Details</label><textarea id="stText" rows="3" placeholder="Aunt Carol is leading our study through the book of Ruth…">${esc(s.text||'')}</textarea>
+      <button class="btn" onclick="saveStudy()">Save study</button>
+    </div>`},
+  schedSheet:()=>{const s=SETTINGS.schedule||{};return `<span class="close-x" onclick="closeSheet()">×</span><h3>Weekend schedule</h3>
+    <div class="form-grid">
+      <label>One line per item</label><textarea id="scText" rows="4" placeholder="Fri — Welcome & registration
+Sat — Cookout, photos & talent show
+Sun — Worship & farewell brunch">${esc(s.text||'')}</textarea>
+      <button class="btn" onclick="saveSched()">Save schedule</button>
+    </div>`},
+  travelSheet:()=>{const s=SETTINGS.travel||{};return `<span class="close-x" onclick="closeSheet()">×</span><h3>Travel & hotels</h3>
+    <div class="form-grid">
+      <label>Details</label><textarea id="trText" rows="3" placeholder="Group rate at the Marriott — mention Willis Family. Carpools forming now.">${esc(s.text||'')}</textarea>
+      <label>Link (optional)</label><input id="trLink" value="${esc(s.link||'')}" placeholder="https://hotel-booking-link…">
+      <button class="btn" onclick="saveTravel()">Save travel info</button>
+    </div>`},
+  tourSheet:()=>{const s=SETTINGS.tour||{};return `<span class="close-x" onclick="closeSheet()">×</span><h3>Reunion tour history</h3>
+    <div class="form-grid">
+      <label>One reunion per line: year then city</label><textarea id="toText" rows="7" placeholder="2012 Atlanta, GA
+2014 Jacksonville, FL
+2027 Brunswick, GA">${esc(s.text||'')}</textarea>
+      <button class="btn" onclick="saveTour()">Save history</button>
+    </div>`},
   shopSheet:(editId)=>{const p=editId?SHOP.find(y=>y.id===editId):null;return `<span class="close-x" onclick="closeSheet()">×</span><h3>${p?'Edit product':'Add a product'}</h3>
     <div class="form-grid">
       <label>Product name</label><input id="spName" placeholder="Reunion Tour Tee" value="${p?esc(p.name):''}">
+      <label>Category</label><select id="spCat">
+        <option value="spice"${p&&p.category==='spice'?' selected':''}>🌶 Spice Co.</option>
+        <option value="merch"${!p||p.category==='merch'||!p.category?' selected':''}>👕 Merch</option>
+        <option value="other"${p&&p.category==='other'?' selected':''}>✨ Other</option>
+      </select>
       <div class="frow"><div><label>Price (number only)</label><input id="spPrice" placeholder="28" value="${p?esc(String(p.price).replace(/^\$+/,'')):''}"></div>
       <div><label>Emoji</label><input id="spEmoji" placeholder="👕" value="${p?esc(p.emoji):''}"></div></div>
       <label>Product photo (from your library)</label><input id="spFile" type="file" accept="image/*">
