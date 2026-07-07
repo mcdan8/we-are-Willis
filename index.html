@@ -341,7 +341,7 @@
       <div id="hofList"></div>
       <div class="divider-label">Family shop</div>
       <p class="section-sub">Merch & family-made goods. Link each item to wherever people can actually buy it.</p>
-      <button class="btn gold" style="margin-bottom:14px" data-admin onclick="openSheet('shopSheet')">+ Add a product</button>
+      <button class="btn gold" style="margin-bottom:14px" onclick="openSheet('shopSheet')">+ Add a product</button>
       <div id="shopList"></div>
     </div>
   </div>
@@ -505,7 +505,7 @@ async function loadAll(){
       SB.from('settings').select('*'),
     ]);
     for(const x of [m,p,e,r,pr,hf,sh,st]) if(x.error) throw x.error;
-    MEMBERS={}; (m.data||[]).forEach(row=>{ MEMBERS[row.id]={name:row.name,bmo:row.bmo,bdy:row.bdy,byr:row.byr,city:row.city||'',parents:row.parents||[]}; });
+    MEMBERS={}; (m.data||[]).forEach(row=>{ MEMBERS[row.id]={name:row.name,bmo:row.bmo,bdy:row.bdy,byr:row.byr,city:row.city||'',parents:row.parents||[],spouse_of:row.spouse_of||null}; });
     POSTS=p.data||[]; EVENTS=e.data||[]; RECIPES=r.data||[]; PRAYERS=pr.data||[]; HOF=hf.data||[]; SHOP=sh.data||[];
     SETTINGS={}; (st.data||[]).forEach(row=>{ SETTINGS[row.key]=row.value; });
   }catch(e){ err(e,'Loading data'); }
@@ -519,7 +519,9 @@ async function enterApp(){
   document.getElementById('crestLetter').innerHTML=crestHTML(24);
   document.getElementById('welcomeName').textContent='Welcome, '+ME.name.split(' ')[0]+'!';
   document.getElementById('welcomeFam').textContent='THE '+F.name.toUpperCase()+' FAMILY';
-  document.querySelectorAll('[data-admin]').forEach(el=>{ el.style.display=(ME.name===F.admin_name)?'':'none'; });
+  const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+  const amAdmin=norm(ME.name)===norm(F.admin_name);
+  document.querySelectorAll('[data-admin]').forEach(el=>{ el.style.display=amAdmin?'':'none'; });
   renderAll();
 }
 async function refreshAll(){ toast('Checking for family updates…'); await loadAll(); renderAll(); toast('Up to date ✨'); }
@@ -625,7 +627,9 @@ function genOf(id,seen){
   seen=seen||{};
   if(seen[id]) return 1; // cycle guard
   seen[id]=true;
-  const ps=(MEMBERS[id].parents||[]).filter(p=>MEMBERS[p]);
+  const m=MEMBERS[id];
+  if(m.spouse_of&&MEMBERS[m.spouse_of]) return genOf(m.spouse_of,seen);
+  const ps=(m.parents||[]).filter(p=>MEMBERS[p]);
   if(!ps.length) return 1;
   return 1+Math.max(...ps.map(p=>genOf(p,seen)));
 }
@@ -646,14 +650,26 @@ function renderTreeIndex(){
   };
   let html='';
   Object.keys(groups).map(Number).sort((a,b)=>a-b).forEach(g=>{
-    const list=groups[g].sort(bsort);
+    const list=groups[g];
+    const primaries=list.filter(id=>!(MEMBERS[id].spouse_of&&MEMBERS[MEMBERS[id].spouse_of])).sort(bsort);
+    const spousesFor=pid=>list.filter(id=>MEMBERS[id].spouse_of===pid).sort(bsort);
+    const ordered=[];
+    primaries.forEach((id,i)=>{
+      const num=i+1;
+      ordered.push({id,badge:(g<=2)?String(num):initials(MEMBERS[id].name)});
+      spousesFor(id).forEach((sid,j)=>{
+        ordered.push({id:sid,badge:(g<=2)?(num+String.fromCharCode(65+j)):initials(MEMBERS[sid].name),sp:true});
+      });
+    });
+    // spouses whose partner sits in another tier bucket (edge case): append
+    list.forEach(id=>{ if(!ordered.find(o=>o.id===id)) ordered.push({id,badge:initials(MEMBERS[id].name)}); });
     html+=`<div class="divider-label">${genLabel(g)}</div><div class="clan-grid">`;
-    html+=list.map((id,i)=>{
-      const m=MEMBERS[id]; const c=descCount(id);
-      const badge=(g<=2)?(i+1):initials(m.name);
-      return `<button class="clan-card" onclick="openPerson('${id}')">
-        <div class="clan-num">${badge}</div>
-        <h4>${esc(m.name)}</h4><p>${c>1?(c+' in this branch'):(m.city?esc(m.city):'—')}</p></button>`;
+    html+=ordered.map(o=>{
+      const m=MEMBERS[o.id]; const c=descCount(o.id);
+      const sub=o.sp?('💍 '+esc(MEMBERS[m.spouse_of].name.split(' ')[0])+'\u2019s spouse'):(c>1?(c+' in this branch'):(m.city?esc(m.city):'—'));
+      return `<button class="clan-card" onclick="openPerson('${o.id}')">
+        <div class="clan-num">${o.badge}</div>
+        <h4>${esc(m.name)}</h4><p>${sub}</p></button>`;
     }).join('');
     html+='</div>';
   });
@@ -670,7 +686,10 @@ function openPerson(id){
   let sibs=[];
   if(parents.length){ childrenOf(parents[0]).forEach(k=>{ if(k!==id&&!sibs.includes(k))sibs.push(k); }); }
   const kids=childrenOf(id);
-  const founder=!parents.length;
+  const spouses=[];
+  if(m.spouse_of&&MEMBERS[m.spouse_of]) spouses.push(m.spouse_of);
+  Object.keys(MEMBERS).forEach(k=>{ if(MEMBERS[k].spouse_of===id&&!spouses.includes(k)) spouses.push(k); });
+  const founder=!parents.length&&!(m.spouse_of&&MEMBERS[m.spouse_of]);
   pv.innerHTML=`
     <div class="tree-back" onclick="showClanIndex()">‹ All family</div>
     <div class="person-card">
@@ -681,7 +700,7 @@ function openPerson(id){
         <div class="fact"><div class="k">Lives in</div><div class="v">${m.city?esc(m.city):'—'}</div></div>
       </div>
     </div>
-    ${chips('Parents',parents)}${chips('Siblings',sibs)}${chips('Children',kids)}
+    ${chips('Parents',parents)}${chips('💍 Spouse',spouses)}${chips('Siblings',sibs)}${chips('Children',kids)}
     <div class="mini-tree">${miniTree(id,parents,kids,m)}</div>
     <button class="pill pill-gold" style="display:block;margin:16px auto 0" onclick="openSheet('memberSheet','${id}')">✎ Edit ${esc(m.name)}</button>
     <button class="link-btn" style="display:block;margin:12px auto 0" onclick="delMember('${id}')">Remove ${esc(m.name)} from the tree</button>`;
@@ -694,7 +713,7 @@ function openPerson(id){
   function miniTree(id,parents,kids,m){
     let h='<div class="mt-title">How they connect</div>';
     if(parents.length){ h+='<div class="mt-level">'+parents.map(k=>`<div class="mt-node" onclick="openPerson('${k}')">${esc(MEMBERS[k].name)}</div>`).join('')+'</div><div class="mt-connector"></div>'; }
-    h+=`<div class="mt-level"><div class="mt-node me">${esc(m.name)}</div></div>`;
+    h+=`<div class="mt-level"><div class="mt-node me">${esc(m.name)}</div>${spouses.map(k=>`<div class="mt-node" onclick="openPerson('${k}')">💍 ${esc(MEMBERS[k].name)}</div>`).join('')}</div>`;
     if(kids.length){ h+='<div class="mt-connector"></div><div class="mt-level">'+kids.map(k=>`<div class="mt-node" onclick="openPerson('${k}')">${esc(MEMBERS[k].name)}</div>`).join('')+'</div>'; }
     return h;
   }
@@ -702,17 +721,17 @@ function openPerson(id){
 async function saveMember(editId){
   const name=v('mName'); if(!name){ toast('Name is required'); return; }
   const parents=[v('mP1'),v('mP2')].filter(Boolean);
-  const row={name,bmo:parseInt(v('mMo'))||null,bdy:parseInt(v('mDy'))||null,byr:parseInt(v('mYr'))||null,city:v('mCity'),parents};
+  const row={name,bmo:parseInt(v('mMo'))||null,bdy:parseInt(v('mDy'))||null,byr:parseInt(v('mYr'))||null,city:v('mCity'),parents,spouse_of:v('mSp')||null};
   try{
     if(editId){
       const {error}=await SB.from('members').update(row).eq('id',editId);
       if(error) throw error;
-      MEMBERS[editId]={name:row.name,bmo:row.bmo,bdy:row.bdy,byr:row.byr,city:row.city||'',parents};
+      MEMBERS[editId]={name:row.name,bmo:row.bmo,bdy:row.bdy,byr:row.byr,city:row.city||'',parents,spouse_of:row.spouse_of};
       closeSheet(); renderTreeIndex(); renderToday(); renderCalendar(); openPerson(editId); toast('Saved ✓');
     }else{
       const {data,error}=await SB.from('members').insert(row).select().single();
       if(error) throw error;
-      MEMBERS[data.id]={name:data.name,bmo:data.bmo,bdy:data.bdy,byr:data.byr,city:data.city||'',parents:data.parents||[]};
+      MEMBERS[data.id]={name:data.name,bmo:data.bmo,bdy:data.bdy,byr:data.byr,city:data.city||'',parents:data.parents||[],spouse_of:data.spouse_of||null};
       closeSheet(); renderTreeIndex(); renderToday(); renderCalendar(); toast(name+' added to the family 🌳');
     }
   }catch(e){ err(e,editId?'Saving changes':'Adding member'); }
@@ -783,8 +802,36 @@ async function delRow(table,id){
 }
 
 /* ================= FAITH ================= */
+const DAILY_VERSES=[
+ {ref:'Joshua 24:15',text:'As for me and my house, we will serve the Lord.'},
+ {ref:'Psalm 133:1',text:'Behold, how good and how pleasant it is for brethren to dwell together in unity!'},
+ {ref:'Proverbs 17:17',text:'A friend loveth at all times, and a brother is born for adversity.'},
+ {ref:'Philippians 4:13',text:'I can do all things through Christ which strengtheneth me.'},
+ {ref:'Psalm 118:24',text:'This is the day which the Lord hath made; we will rejoice and be glad in it.'},
+ {ref:'Proverbs 3:5',text:'Trust in the Lord with all thine heart; and lean not unto thine own understanding.'},
+ {ref:'1 Corinthians 13:13',text:'And now abideth faith, hope, charity, these three; but the greatest of these is charity.'},
+ {ref:'Psalm 23:1',text:'The Lord is my shepherd; I shall not want.'},
+ {ref:'Matthew 18:20',text:'For where two or three are gathered together in my name, there am I in the midst of them.'},
+ {ref:'Jeremiah 29:11',text:'For I know the thoughts that I think toward you, saith the Lord, thoughts of peace, and not of evil.'},
+ {ref:'Psalm 127:3',text:'Lo, children are an heritage of the Lord.'},
+ {ref:'Galatians 6:9',text:'Let us not be weary in well doing: for in due season we shall reap, if we faint not.'},
+ {ref:'Proverbs 22:6',text:'Train up a child in the way he should go: and when he is old, he will not depart from it.'},
+ {ref:'Isaiah 40:31',text:'They that wait upon the Lord shall renew their strength; they shall mount up with wings as eagles.'},
+ {ref:'Romans 8:28',text:'All things work together for good to them that love God.'},
+ {ref:'Psalm 100:4',text:'Enter into his gates with thanksgiving, and into his courts with praise.'},
+ {ref:'Ephesians 4:32',text:'Be ye kind one to another, tenderhearted, forgiving one another.'},
+ {ref:'Deuteronomy 6:6-7',text:'These words shall be in thine heart: and thou shalt teach them diligently unto thy children.'},
+ {ref:'Psalm 46:1',text:'God is our refuge and strength, a very present help in trouble.'},
+ {ref:'Colossians 3:14',text:'Above all these things put on charity, which is the bond of perfectness.'},
+ {ref:'Numbers 6:24',text:'The Lord bless thee, and keep thee.'},
+];
+function autoVerse(){
+  const now=new Date();
+  const doy=Math.floor((now-new Date(now.getFullYear(),0,0))/86400000);
+  return DAILY_VERSES[doy%DAILY_VERSES.length];
+}
 function renderFaith(){
-  const vv=SETTINGS.verse||{ref:'Joshua 24:15',text:'As for me and my house, we will serve the Lord.'};
+  const vv=SETTINGS.verse||autoVerse();
   document.getElementById('verseCard').innerHTML=`<div class="ref">${esc(vv.ref)}</div><div class="vtext">"${esc(vv.text)}"</div>`;
   const el=document.getElementById('prayerList');
   el.innerHTML=PRAYERS.length?PRAYERS.map(p=>`
@@ -800,6 +847,13 @@ async function addPrayer(){
     document.getElementById('prayerText').value='';
     PRAYERS.unshift(data); renderFaith(); toast('Added to the prayer wall 🙏');
   }catch(e){ err(e,'Adding prayer'); }
+}
+async function clearVerse(){
+  try{
+    const {error}=await SB.from('settings').upsert({key:'verse',value:null});
+    if(error) throw error;
+    SETTINGS.verse=null; closeSheet(); renderFaith(); toast('📖 Daily verse rotation is on');
+  }catch(e){ err(e,'Switching verse mode'); }
 }
 async function saveVerse(){
   try{
@@ -947,8 +1001,9 @@ function renderShop(){
   const el=document.getElementById('shopList');
   el.innerHTML=SHOP.length?SHOP.map(p=>`
     <div class="card" style="display:flex;gap:13px;align-items:center">
-      <div style="width:52px;height:52px;border-radius:14px;flex-shrink:0;display:grid;place-items:center;font-size:26px;background:rgba(232,178,58,.16)">${esc(p.emoji||'🛍')}</div>
+      <div style="width:56px;height:56px;border-radius:14px;flex-shrink:0;display:grid;place-items:center;font-size:26px;background:rgba(232,178,58,.16);overflow:hidden">${p.img?`<img src="${esc(p.img)}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='🛍'">`:esc(p.emoji||'🛍')}</div>
       <div style="flex:1"><h4 style="color:var(--green);font-size:15px">${esc(p.name)}</h4>
+      ${p.descr?`<p style="font-size:11.5px;color:var(--ink-soft);margin:1px 0 2px">${esc(p.descr)}</p>`:''}
       <p style="font-size:13px;font-weight:700">$${esc(String(p.price).replace(/^\$+/,''))} <span class="mini-act" onclick="openSheet('shopSheet','${p.id}')">✎</span><span class="mini-act" onclick="delRow('shop','${p.id}')">🗑</span></p></div>
       ${p.link?`<a class="btn small" style="text-decoration:none" href="${esc(p.link)}" target="_blank" rel="noopener">Buy</a>`:''}
     </div>`).join('')
@@ -956,7 +1011,7 @@ function renderShop(){
 }
 async function addShop(editId){
   const n=v('spName'); if(!n){ toast('Name the product'); return; }
-  const row={name:n,price:(v('spPrice')||'—').replace(/^\$+/,''),link:v('spLink'),emoji:v('spEmoji')||'🛍'};
+  const row={name:n,price:(v('spPrice')||'—').replace(/^\$+/,''),link:v('spLink'),emoji:v('spEmoji')||'🛍',img:v('spImg'),descr:v('spDesc')};
   try{
     if(editId){
       const {error}=await SB.from('shop').update(row).eq('id',editId);
@@ -975,7 +1030,7 @@ async function addShop(editId){
 const SHEETS={
   memberSheet:(editId)=>{
     const m=editId?MEMBERS[editId]:null;
-    const p1=m?(m.parents||[])[0]||'':'', p2=m?(m.parents||[])[1]||'':'';
+    const p1=m?(m.parents||[])[0]||'':'', p2=m?(m.parents||[])[1]||'':'', sp=m?(m.spouse_of||''):'';
     const optFor=sel=>'<option value="">— none —</option>'+Object.keys(MEMBERS).filter(id=>id!==editId).map(id=>`<option value="${id}"${id===sel?' selected':''}>${esc(MEMBERS[id].name)}</option>`).join('');
     const mos=MONTHS.map((mo,i)=>`<option value="${i+1}"${m&&m.bmo==i+1?' selected':''}>${mo}</option>`).join('');
     return `<span class="close-x" onclick="closeSheet()">×</span><h3>${editId?'Edit '+esc(m.name):'Add a family member'}</h3>
@@ -989,6 +1044,7 @@ const SHEETS={
       <label>City</label><input id="mCity" placeholder="e.g. Griffin, GA" value="${m?esc(m.city):''}">
       <label>Parent in this family (builds the tree)</label><select id="mP1">${optFor(p1)}</select>
       <label>Second parent (optional)</label><select id="mP2">${optFor(p2)}</select>
+      <label>💍 Spouse of (optional)</label><select id="mSp">${optFor(sp)}</select>
       <button class="btn" onclick="saveMember('${editId||''}')">${editId?'Save changes':'Add to the family tree'}</button>
       <p style="font-size:11px;color:var(--ink-soft)">Leave parents empty for the founding generation.</p>
     </div>`;
@@ -1005,7 +1061,9 @@ const SHEETS={
     <div class="form-grid">
       <label>Reference</label><input id="vsRef" value="${esc((SETTINGS.verse||{}).ref||'')}" placeholder="Psalm 133:1">
       <label>Verse text</label><textarea id="vsText" rows="3" placeholder="How good and pleasant it is…">${esc((SETTINGS.verse||{}).text||'')}</textarea>
-      <button class="btn" onclick="saveVerse()">Save verse</button>
+      <button class="btn" onclick="saveVerse()">Pin this verse</button>
+      <button class="btn" style="background:var(--paper);color:var(--green);border:1.5px solid var(--line)" onclick="clearVerse()">↺ Use automatic daily verse</button>
+      <p style="font-size:11px;color:var(--ink-soft)">The daily verse rotates automatically. Pinning shows your verse until you switch back.</p>
     </div>`,
   watchSheet:()=>`<span class="close-x" onclick="closeSheet()">×</span><h3>Facebook Live link</h3>
     <div class="form-grid">
@@ -1042,6 +1100,8 @@ const SHEETS={
       <label>Product name</label><input id="spName" placeholder="Reunion Tour Tee" value="${p?esc(p.name):''}">
       <div class="frow"><div><label>Price (number only)</label><input id="spPrice" placeholder="28" value="${p?esc(String(p.price).replace(/^\$+/,'')):''}"></div>
       <div><label>Emoji</label><input id="spEmoji" placeholder="👕" value="${p?esc(p.emoji):''}"></div></div>
+      <label>Photo link (optional)</label><input id="spImg" placeholder="https://… (a picture of it)" value="${p?esc(p.img||''):''}">
+      <label>Short description (optional)</label><input id="spDesc" placeholder="Soft cotton, all 8 sibling names on back" value="${p?esc(p.descr||''):''}">
       <label>Buy link (optional)</label><input id="spLink" placeholder="https://…" value="${p?esc(p.link):''}">
       <button class="btn" onclick="addShop('${editId||''}')">${p?'Save changes':'Add product'}</button>
     </div>`},
@@ -1072,10 +1132,14 @@ function toggleSong(){
   song.muted=false; song.volume=1.0;
   const p=song.play();
   if(p&&p.then){
-    p.then(()=>setSongUI(true)).catch(e=>{
+    p.then(()=>setSongUI(true)).catch(async e=>{
       setSongUI(false);
-      if(e&&e.name==='NotSupportedError') toast('🎵 Upload song.mp3 to the GitHub repo to turn the song on');
-      else toast('🔇 Browser blocked audio — check the silent switch & tap again');
+      if(e&&e.name==='NotAllowedError'){ toast('🔇 Browser blocked audio — check the silent switch & tap again'); return; }
+      try{
+        const r=await fetch('song.mp3?chk='+Date.now(),{method:'HEAD'});
+        if(r.ok){ song.src='song.mp3?v='+Date.now(); song.load(); toast('🎵 Song found — tap play once more'); }
+        else toast('🎵 GitHub returns '+r.status+' for song.mp3 — the file name in the repo must be exactly song.mp3');
+      }catch(_){ toast('🎵 Can\'t reach song.mp3 — Pages may still be deploying. Try again in 2 minutes.'); }
     });
   } else setSongUI(true);
 }
