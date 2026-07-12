@@ -231,6 +231,11 @@
   .tour-row.next .yr{color:var(--clay)}
   .photo-btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--green);cursor:pointer}
   .post-photo{width:100%;display:block}
+  .pick{position:relative}
+  .pick-list{background:var(--card);border:1.5px solid var(--line);border-radius:12px;margin-top:4px;max-height:190px;overflow-y:auto;display:none;box-shadow:var(--shadow)}
+  .pick-item{padding:10px 13px;font-size:14px;border-bottom:1px solid var(--line);cursor:pointer}
+  .pick-item:last-child{border-bottom:none}
+  .pick-item:active{background:var(--paper)}
   .mini-act{cursor:pointer;color:var(--clay);font-size:14px;padding:2px 6px;font-weight:700}
   .toast{position:fixed;bottom:118px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#F6F1E4;padding:12px 20px;border-radius:30px;font-size:13px;font-weight:500;z-index:200;opacity:0;transition:.3s;pointer-events:none;box-shadow:var(--shadow-lg);max-width:90%;text-align:center}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -302,6 +307,7 @@
         <div class="section-eyebrow">Our line</div>
         <h2 class="section-title">Family Tree</h2>
         <p class="section-sub">Everyone in the family, and how we connect. Add members and link them to their parents — the tree builds itself.</p>
+        <input id="treeSearch" placeholder="🔍 Find someone… name or nickname" autocomplete="off" style="width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 13px;background:var(--card);margin-bottom:10px" oninput="renderTreeIndex()">
         <button class="btn gold" style="margin-bottom:14px" onclick="openSheet('memberSheet')">+ Add a family member</button>
         <div id="genContainer"></div>
       </div>
@@ -687,6 +693,20 @@ function renderTreeIndex(){
   const ids=Object.keys(MEMBERS);
   const box=document.getElementById('genContainer');
   if(!ids.length){ box.innerHTML='<div class="empty">No one here yet — start with the eldest generation.</div>'; return; }
+  const q=((document.getElementById('treeSearch')||{}).value||'').trim().toLowerCase();
+  if(q){
+    const hits=ids.filter(id=>{
+      const m=MEMBERS[id];
+      return m.name.toLowerCase().includes(q)||(m.nickname||'').toLowerCase().includes(q);
+    }).sort((a,b)=>MEMBERS[a].name.localeCompare(MEMBERS[b].name));
+    box.innerHTML=hits.length
+      ? '<div class="divider-label">Search results ('+hits.length+')</div><div class="clan-grid">'+hits.map(id=>{
+          const m=MEMBERS[id];
+          return `<button class="clan-card" onclick="openPerson('${id}')"><div class="clan-num">${initials(m.name)}</div><h4>${esc(m.name)}</h4>${m.nickname?`<p style="color:var(--gold-deep);font-weight:700;font-size:11px">“${esc(m.nickname)}”</p>`:''}<p>${m.city?esc(m.city):'—'}</p></button>`;
+        }).join('')+'</div>'
+      : '<div class="empty">No one matches “'+esc(q)+'” yet.</div>';
+    return;
+  }
   const groups={};
   ids.forEach(id=>{ const g=genOf(id); (groups[g]=groups[g]||[]).push(id); });
   const bsort=(a,b)=>{
@@ -1292,7 +1312,7 @@ const SHEETS={
   memberSheet:(editId)=>{
     const m=editId?MEMBERS[editId]:null;
     const p1=m?(m.parents||[])[0]||'':'', p2=m?(m.parents||[])[1]||'':'', sp=m?(m.spouse_of||''):'';
-    const optFor=sel=>'<option value="">— none —</option>'+Object.keys(MEMBERS).filter(id=>id!==editId).map(id=>`<option value="${id}"${id===sel?' selected':''}>${esc(MEMBERS[id].name)}</option>`).join('');
+    window._pickExclude=editId||'';
     const mos=MONTHS.map((mo,i)=>`<option value="${i+1}"${m&&m.bmo==i+1?' selected':''}>${mo}</option>`).join('');
     return `<span class="close-x" onclick="closeSheet()">×</span><h3>${editId?'Edit '+esc(m.name):'Add a family member'}</h3>
     <div class="form-grid">
@@ -1304,9 +1324,9 @@ const SHEETS={
         <input id="mYr" type="number" min="1900" max="2026" placeholder="Year (opt.)" value="${m&&m.byr?m.byr:''}">
       </div>
       <label>City</label><input id="mCity" placeholder="e.g. Griffin, GA" value="${m?esc(m.city):''}">
-      <label>Parent in this family (builds the tree)</label><select id="mP1">${optFor(p1)}</select>
-      <label>Second parent (optional)</label><select id="mP2">${optFor(p2)}</select>
-      <label>💍 Spouse of (optional)</label><select id="mSp">${optFor(sp)}</select>
+      <label>Parent in this family (builds the tree)</label>${pickerHTML('mP1',p1)}
+      <label>Second parent (optional)</label>${pickerHTML('mP2',p2)}
+      <label>💍 Spouse of (optional)</label>${pickerHTML('mSp',sp)}
       <button class="btn" onclick="saveMember('${editId||''}')">${editId?'Save changes':'Add to the family tree'}</button>
       <p style="font-size:11px;color:var(--ink-soft)">Leave parents empty for the founding generation.</p>
     </div>`;
@@ -1428,6 +1448,32 @@ Sun — Worship & farewell brunch">${esc(s.text||'')}</textarea>
       <button class="btn" onclick="addShop('${editId||''}')">${p?'Save changes':'Add product'}</button>
     </div>`},
 };
+function pickerHTML(fid,selId){
+  const sel=selId&&MEMBERS[selId]?MEMBERS[selId]:null;
+  return `<div class="pick">
+    <input type="hidden" id="${fid}" value="${sel?selId:''}">
+    <input class="pick-in" id="${fid}_in" placeholder="Type a name… (or leave empty)" autocomplete="off" value="${sel?esc(sel.name):''}" oninput="pickFilter('${fid}')" onfocus="pickFilter('${fid}')">
+    <div class="pick-list" id="${fid}_list"></div>
+  </div>`;
+}
+function pickFilter(fid){
+  const q=document.getElementById(fid+'_in').value.trim().toLowerCase();
+  const list=document.getElementById(fid+'_list');
+  const ex=window._pickExclude||'';
+  const ids=Object.keys(MEMBERS).filter(id=>id!==ex).filter(id=>{
+    const m=MEMBERS[id];
+    return !q||m.name.toLowerCase().includes(q)||(m.nickname||'').toLowerCase().includes(q);
+  }).sort((a,b)=>MEMBERS[a].name.localeCompare(MEMBERS[b].name)).slice(0,8);
+  let html=`<div class="pick-item" style="color:var(--ink-soft)" onclick="pickChoose('${fid}','')">✕ None</div>`;
+  html+=ids.map(id=>`<div class="pick-item" onclick="pickChoose('${fid}','${id}')">${esc(MEMBERS[id].name)}${MEMBERS[id].nickname?` <span style="color:var(--gold-deep);font-size:12px">“${esc(MEMBERS[id].nickname)}”</span>`:''}</div>`).join('');
+  list.innerHTML=html;
+  list.style.display='block';
+}
+function pickChoose(fid,id){
+  document.getElementById(fid).value=id;
+  document.getElementById(fid+'_in').value=id&&MEMBERS[id]?MEMBERS[id].name:'';
+  document.getElementById(fid+'_list').style.display='none';
+}
 function openSheet(name,arg){
   document.getElementById('sheetBody').innerHTML=SHEETS[name](arg);
   document.getElementById('modal').classList.add('show');
