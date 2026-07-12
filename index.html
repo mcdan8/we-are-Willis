@@ -1244,15 +1244,31 @@ async function addMem(){
     MEMORIALS.unshift(data); closeSheet(); renderYearbook(); toast('🕊️ Forever remembered');
   }catch(e){ err(e,'Adding memorial'); }
 }
+async function uploadVideo(file){
+  const ext=((file.name||'').match(/\.(\w+)$/)||[0,'mp4'])[1];
+  const path='yearbook/'+Date.now()+'.'+ext;
+  const {error}=await SB.storage.from('family').upload(path,file,{contentType:file.type||'video/mp4'});
+  if(error) throw error;
+  return SB.storage.from('family').getPublicUrl(path).data.publicUrl;
+}
 async function addYb(){
   const y=parseInt(v('ybYear')); if(!y){ toast('Enter a year'); return; }
   const fEl=document.getElementById('ybFile');
-  const vid=v('ybVid');
-  const hasPhoto=fEl&&fEl.files&&fEl.files[0];
-  if(!hasPhoto&&!vid){ toast('Pick a photo or paste a video link'); return; }
+  let vid=v('ybVid');
+  const file=fEl&&fEl.files&&fEl.files[0];
+  if(!file&&!vid){ toast('Pick a photo/video or paste a link'); return; }
   try{
     let img='';
-    if(hasPhoto){ toast('📤 Uploading photo…'); img=await uploadPhoto(fEl.files[0],'yearbook'); }
+    if(file){
+      if((file.type||'').startsWith('video')){
+        if(file.size>45*1024*1024){ toast('🎬 That video is too big — keep it under ~45 MB (about 30–45 sec), or post it to Facebook and paste the link.'); return; }
+        toast('📤 Uploading video… this can take a minute');
+        vid=await uploadVideo(file);
+      }else{
+        toast('📤 Uploading photo…');
+        img=await uploadPhoto(file,'yearbook');
+      }
+    }
     const {data,error}=await SB.from('yearbook').insert({year:y,caption:v('ybCap'),img,video:vid}).select().single();
     if(error) throw error;
     YEARBOOK.unshift(data); closeSheet(); renderYearbook(); toast('Added to the '+y+' yearbook 📖');
@@ -1357,8 +1373,9 @@ const SHEETS={
     <div class="form-grid">
       <label>Year</label><input id="ybYear" type="number" value="${new Date().getFullYear()}">
       <label>Caption</label><input id="ybCap" placeholder="Tampa reunion — the whole family">
-      <label>Photo</label><input id="ybFile" type="file" accept="image/*">
-      <label>OR a video link (Facebook / YouTube)</label><input id="ybVid" placeholder="https://…">
+      <label>Photo or short video (from your library)</label><input id="ybFile" type="file" accept="image/*,video/*">
+      <p style="font-size:11px;color:var(--ink-soft);margin-top:-4px">Videos: keep it ~30–45 seconds (45 MB max). Longer ones: post to Facebook and paste the link below.</p>
+      <label>OR paste a video link</label><input id="ybVid" placeholder="https://…">
       <button class="btn" onclick="addYb()">Add to the yearbook 📖</button>
     </div>`,
   rolesSheet:()=>{const s=SETTINGS.faith_editors||{};return `<span class="close-x" onclick="closeSheet()">×</span><h3>Faith section editors</h3>
