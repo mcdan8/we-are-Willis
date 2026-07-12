@@ -219,6 +219,11 @@
   .yb-cell .cap{position:absolute;left:0;right:0;bottom:0;padding:14px 10px 8px;background:linear-gradient(to top,rgba(14,22,15,.85),transparent);color:#fff;font-size:10.5px;font-weight:600}
   .yb-cell.wide{grid-column:span 2;aspect-ratio:2/1}
   .yb-del{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.45);color:#fff;border-radius:50%;width:26px;height:26px;display:grid;place-items:center;font-size:12px;cursor:pointer}
+  .memorial{background:linear-gradient(150deg,#241d12,#3a3024);border-radius:16px;padding:16px;color:#F3EDE0;margin-bottom:11px;border-left:4px solid var(--gold);display:flex;gap:13px;align-items:flex-start}
+  .memorial .mimg{width:58px;height:58px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex-shrink:0}
+  .memorial h4{font-family:'Allura','Snell Roundhand',cursive;font-size:26px;color:var(--gold);font-weight:400;line-height:1}
+  .memorial .yrs{font-size:10.5px;letter-spacing:1.5px;color:rgba(243,237,224,.7);text-transform:uppercase;margin:2px 0 4px}
+  .memorial p{font-size:12.5px;color:rgba(243,237,224,.88)}
   .tour-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
   .tour-row:last-child{border-bottom:none}
   .tour-row .yr{font-family:'Fraunces',serif;font-weight:800;color:var(--gold-deep);width:46px;flex-shrink:0}
@@ -318,11 +323,11 @@
   <!-- FAITH -->
   <div class="screen" id="bible">
     <div class="pad">
-      <div class="section-eyebrow">Scripture of the day <span class="admin-edit" data-admin onclick="openSheet('verseSheet')">✎ edit</span></div>
+      <div class="section-eyebrow">Scripture of the day <span class="admin-edit" data-faith onclick="openSheet('verseSheet')">✎ edit</span> <span class="admin-edit" data-admin onclick="openSheet('rolesSheet')">👥 editors</span></div>
       <div class="verse-card" id="verseCard"></div>
-      <div class="divider-label">Watch & worship <span class="admin-edit" data-admin onclick="openSheet('watchSheet')">✎ set link</span></div>
+      <div class="divider-label">Watch & worship <span class="admin-edit" data-faith onclick="openSheet('watchSheet')">✎ set link</span></div>
       <div id="watchBody" style="margin-bottom:6px"></div>
-      <div class="card"><h4 style="color:var(--green);font-size:16px;margin-bottom:5px">📖 Bible Study <span class="admin-edit" data-admin onclick="openSheet('studySheet')">✎ edit</span></h4><div id="studyBody" style="font-size:13px;color:var(--ink-soft);white-space:pre-wrap"></div></div>
+      <div class="card"><h4 style="color:var(--green);font-size:16px;margin-bottom:5px">📖 Bible Study <span class="admin-edit" data-faith onclick="openSheet('studySheet')">✎ edit</span></h4><div id="studyBody" style="font-size:13px;color:var(--ink-soft);white-space:pre-wrap"></div></div>
       <div class="divider-label">Prayer wall</div>
       <div class="composer" style="margin:0 0 12px">
         <textarea id="prayerText" placeholder="Share a prayer request…"></textarea>
@@ -412,7 +417,7 @@ function err(e,label){
 
 /* ================= STATE ================= */
 let F=null, ME=null;
-let MEMBERS={}, POSTS=[], EVENTS=[], RECIPES=[], PRAYERS=[], HOF=[], SHOP=[], YEARBOOK=[], SETTINGS={};
+let MEMBERS={}, POSTS=[], EVENTS=[], RECIPES=[], PRAYERS=[], HOF=[], SHOP=[], YEARBOOK=[], MEMORIALS=[], SETTINGS={};
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials=n=>{const p=String(n).trim().split(/\s+/);return ((p[0]||'')[0]||'?').toUpperCase()+((p[1]||'')[0]||'').toUpperCase();};
@@ -522,7 +527,7 @@ async function enterFamily(){
 /* ================= LOAD & ENTER ================= */
 async function loadAll(){
   try{
-    const [m,p,e,r,pr,hf,sh,st,yb]=await Promise.all([
+    const [m,p,e,r,pr,hf,sh,st,yb,mem]=await Promise.all([
       SB.from('members').select('*'),
       SB.from('posts').select('*').order('created_at',{ascending:false}).limit(100),
       SB.from('events').select('*'),
@@ -532,10 +537,12 @@ async function loadAll(){
       SB.from('shop').select('*').order('created_at',{ascending:false}),
       SB.from('settings').select('*'),
       SB.from('yearbook').select('*').order('created_at',{ascending:false}),
+      SB.from('memorials').select('*').order('created_at',{ascending:false}),
     ]);
     for(const x of [m,p,e,r,pr,hf,sh,st,yb]) if(x.error) throw x.error;
     YEARBOOK=yb.data||[];
-    MEMBERS={}; (m.data||[]).forEach(row=>{ MEMBERS[row.id]={name:row.name,bmo:row.bmo,bdy:row.bdy,byr:row.byr,city:row.city||'',parents:row.parents||[],spouse_of:row.spouse_of||null}; });
+    MEMORIALS=(mem&&!mem.error&&mem.data)||[];
+    MEMBERS={}; (m.data||[]).forEach(row=>{ MEMBERS[row.id]={name:row.name,nickname:row.nickname||'',bmo:row.bmo,bdy:row.bdy,byr:row.byr,city:row.city||'',parents:row.parents||[],spouse_of:row.spouse_of||null}; });
     POSTS=p.data||[]; EVENTS=e.data||[]; RECIPES=r.data||[]; PRAYERS=pr.data||[]; HOF=hf.data||[]; SHOP=sh.data||[];
     SETTINGS={}; (st.data||[]).forEach(row=>{ SETTINGS[row.key]=row.value; });
   }catch(e){ err(e,'Loading data'); }
@@ -549,10 +556,11 @@ async function enterApp(){
   document.getElementById('crestLetter').innerHTML=crestHTML(24);
   document.getElementById('welcomeName').textContent='Welcome, '+ME.name.split(' ')[0]+'!';
   document.getElementById('welcomeFam').textContent='THE '+F.name.toUpperCase()+' FAMILY';
-  const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
-  const amAdmin=norm(ME.name)===norm(F.admin_name);
-  document.querySelectorAll('[data-admin]').forEach(el=>{ el.style.display=amAdmin?'':'none'; });
+  applyRoles();
   renderAll();
+  const kick=()=>{ if(!playing&&song&&song.src){ const pr=song.play(); if(pr&&pr.then) pr.then(()=>setSongUI(true)).catch(()=>{}); } };
+  document.addEventListener('click',kick,{once:true});
+  document.addEventListener('touchstart',kick,{once:true});
 }
 async function refreshAll(){ toast('Checking for family updates…'); await loadAll(); renderAll(); toast('Up to date ✨'); }
 function renderAll(){ renderToday(); renderFeed(); renderTreeIndex(); renderCalendar(); renderFaith(); renderWatch(); renderReunion(); renderRecipes(); renderShop(); renderYearbook(); }
@@ -706,7 +714,7 @@ function renderTreeIndex(){
       const sub=o.sp?('💍 '+esc(MEMBERS[m.spouse_of].name.split(' ')[0])+'\u2019s spouse'):(c>1?(c+' in this branch'):(m.city?esc(m.city):'—'));
       return `<button class="clan-card" onclick="openPerson('${o.id}')">
         <div class="clan-num">${o.badge}</div>
-        <h4>${esc(m.name)}</h4><p>${sub}</p></button>`;
+        <h4>${esc(m.name)}</h4>${m.nickname?`<p style="color:var(--gold-deep);font-weight:700;font-size:11px">“${esc(m.nickname)}”</p>`:''}<p>${sub}</p></button>`;
     }).join('');
     html+='</div>';
   });
@@ -749,7 +757,7 @@ function openPerson(id){
     <div class="tree-back" onclick="showClanIndex()">‹ All family</div>
     <div class="person-card">
       <div class="person-top"><div class="person-photo">${initials(m.name)}</div>
-        <div><h2>${esc(m.name)}</h2><span class="person-clan">${founder?'★ Founding generation':'Family member'}</span></div></div>
+        <div><h2>${esc(m.name)}</h2>${m.nickname?`<div style="font-family:'Fraunces',serif;font-style:italic;color:var(--gold);font-size:15px;margin:1px 0 4px">“${esc(m.nickname)}”</div>`:''}<span class="person-clan">${founder?'★ Founding generation':'Family member'}</span></div></div>
       <div class="person-facts">
         <div class="fact"><div class="k">Birthday</div><div class="v">${m.bmo?MONTHS[m.bmo-1]+' '+m.bdy:'—'}</div></div>
         <div class="fact"><div class="k">Lives in</div><div class="v">${m.city?esc(m.city):'—'}</div></div>
@@ -765,28 +773,29 @@ function openPerson(id){
     return `<div class="rel-group"><div class="rel-label">${label}</div><div class="rel-chips">`+
       arr.map(k=>`<button class="rel-chip" onclick="openPerson('${k}')"><span class="ra">${initials(MEMBERS[k].name)}</span>${esc(MEMBERS[k].name)}</button>`).join('')+'</div></div>';
   }
+  function nickOr(k){ const x=MEMBERS[k]; return x.nickname||x.name; }
   function miniTree(id,parents,kids,m){
     let h='<div class="mt-title">How they connect</div>';
-    if(parents.length){ h+='<div class="mt-level">'+parents.map(k=>`<div class="mt-node" onclick="openPerson('${k}')">${esc(MEMBERS[k].name)}</div>`).join('')+'</div><div class="mt-connector"></div>'; }
-    h+=`<div class="mt-level"><div class="mt-node me">${esc(m.name)}</div>${spouses.map(k=>`<div class="mt-node" onclick="openPerson('${k}')">💍 ${esc(MEMBERS[k].name)}</div>`).join('')}</div>`;
-    if(kids.length){ h+='<div class="mt-connector"></div><div class="mt-level">'+kids.map(k=>`<div class="mt-node" onclick="openPerson('${k}')">${esc(MEMBERS[k].name)}</div>`).join('')+'</div>'; }
+    if(parents.length){ h+='<div class="mt-level">'+parents.map(k=>`<div class="mt-node" onclick="openPerson('${k}')">${esc(nickOr(k))}</div>`).join('')+'</div><div class="mt-connector"></div>'; }
+    h+=`<div class="mt-level"><div class="mt-node me">${esc(m.nickname||m.name)}</div>${spouses.map(k=>`<div class="mt-node" onclick="openPerson('${k}')">💍 ${esc(nickOr(k))}</div>`).join('')}</div>`;
+    if(kids.length){ h+='<div class="mt-connector"></div><div class="mt-level">'+kids.map(k=>`<div class="mt-node" onclick="openPerson('${k}')">${esc(nickOr(k))}</div>`).join('')+'</div>'; }
     return h;
   }
 }
 async function saveMember(editId){
   const name=v('mName'); if(!name){ toast('Name is required'); return; }
   const parents=[v('mP1'),v('mP2')].filter(Boolean);
-  const row={name,bmo:parseInt(v('mMo'))||null,bdy:parseInt(v('mDy'))||null,byr:parseInt(v('mYr'))||null,city:v('mCity'),parents,spouse_of:v('mSp')||null};
+  const row={name,nickname:v('mNick'),bmo:parseInt(v('mMo'))||null,bdy:parseInt(v('mDy'))||null,byr:parseInt(v('mYr'))||null,city:v('mCity'),parents,spouse_of:v('mSp')||null};
   try{
     if(editId){
       const {error}=await SB.from('members').update(row).eq('id',editId);
       if(error) throw error;
-      MEMBERS[editId]={name:row.name,bmo:row.bmo,bdy:row.bdy,byr:row.byr,city:row.city||'',parents,spouse_of:row.spouse_of};
+      MEMBERS[editId]={name:row.name,nickname:row.nickname,bmo:row.bmo,bdy:row.bdy,byr:row.byr,city:row.city||'',parents,spouse_of:row.spouse_of};
       closeSheet(); renderTreeIndex(); renderToday(); renderCalendar(); openPerson(editId); toast('Saved ✓');
     }else{
       const {data,error}=await SB.from('members').insert(row).select().single();
       if(error) throw error;
-      MEMBERS[data.id]={name:data.name,bmo:data.bmo,bdy:data.bdy,byr:data.byr,city:data.city||'',parents:data.parents||[],spouse_of:data.spouse_of||null};
+      MEMBERS[data.id]={name:data.name,nickname:data.nickname||'',bmo:data.bmo,bdy:data.bdy,byr:data.byr,city:data.city||'',parents:data.parents||[],spouse_of:data.spouse_of||null};
       closeSheet(); renderTreeIndex(); renderToday(); renderCalendar(); toast(name+' added to the family 🌳');
     }
   }catch(e){ err(e,editId?'Saving changes':'Adding member'); }
@@ -814,7 +823,7 @@ function renderCalendar(){
   const items=[];
   Object.keys(MEMBERS).forEach(id=>{
     const nb=nextBday(MEMBERS[id]);
-    if(nb) items.push({date:nb.date,title:MEMBERS[id].name+"'s Birthday 🎂",sub:nb.days===0?'Today!':(nb.days+' days away'),id});
+    if(nb) items.push({date:nb.date,title:(MEMBERS[id].nickname||MEMBERS[id].name)+"'s Birthday 🎂",sub:nb.days===0?'Today!':(nb.days+' days away'),id});
   });
   EVENTS.forEach(e=>{
     const d=new Date(e.on_date+'T12:00:00');
@@ -849,9 +858,9 @@ async function delRow(table,id){
   try{
     const {error}=await SB.from(table).delete().eq('id',id);
     if(error) throw error;
-    const map={shop:SHOP,recipes:RECIPES,events:EVENTS,yearbook:YEARBOOK};
+    const map={shop:SHOP,recipes:RECIPES,events:EVENTS,yearbook:YEARBOOK,memorials:MEMORIALS};
     const arr=map[table]; const i=arr.findIndex(x=>x.id===id); if(i>-1) arr.splice(i,1);
-    ({shop:renderShop,recipes:renderRecipes,events:renderCalendar,yearbook:renderYearbook})[table]();
+    ({shop:renderShop,recipes:renderRecipes,events:renderCalendar,yearbook:renderYearbook,memorials:renderYearbook})[table]();
     toast('Deleted 🗑');
   }catch(e){ err(e,'Deleting'); }
 }
@@ -1061,6 +1070,17 @@ function extraReunionCards(){
   }
   return html;
 }
+function canFaith(){
+  const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+  const list=((SETTINGS.faith_editors&&SETTINGS.faith_editors.text)||'').split(',').map(norm).filter(Boolean);
+  return ME&&list.includes(norm(ME.name));
+}
+function applyRoles(){
+  const a=amAdminNow();
+  document.querySelectorAll('[data-admin]').forEach(el=>{ el.style.display=a?'':'none'; });
+  const f=a||canFaith();
+  document.querySelectorAll('[data-faith]').forEach(el=>{ el.style.display=f?'':'none'; });
+}
 function amAdminNow(){
   const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
   return ME&&F&&norm(ME.name)===norm(F.admin_name);
@@ -1187,21 +1207,53 @@ function renderYearbook(){
     html+=years[y].map((x,i)=>`
       <div class="yb-cell${i===0?' wide':''}">
         ${x.img?`<img src="${esc(x.img)}" loading="lazy">`:''}
-        <span class="yb-del" onclick="delRow('yearbook','${x.id}')">🗑</span>
-        <div class="cap">${esc(x.caption)}</div>
+        ${x.video?`<a href="${esc(x.video)}" target="_blank" rel="noopener" style="position:absolute;inset:0;z-index:1;display:grid;place-items:center;text-decoration:none;color:#fff;font-size:36px;background:${x.img?'rgba(0,0,0,.28)':'rgba(16,27,69,.4)'}">▶</a>`:''}
+        <span class="yb-del" style="z-index:2" onclick="delRow('yearbook','${x.id}')">🗑</span>
+        <div class="cap" style="z-index:2;pointer-events:none">${esc(x.caption)}${x.video?' 🎬':''}</div>
       </div>`).join('');
     html+='</div>';
   });
+  html+=renderMemorials();
   el.innerHTML=html;
+}
+function renderMemorials(){
+  let html='<div class="divider-label">🕊️ In Loving Memory</div>';
+  if(MEMORIALS.length){
+    html+=MEMORIALS.map(x=>`
+      <div class="memorial">
+        ${x.img?`<img class="mimg" src="${esc(x.img)}">`:''}
+        <div style="flex:1">
+          <h4>${esc(x.name)}</h4>
+          ${x.years?`<div class="yrs">${esc(x.years)}</div>`:''}
+          ${x.words?`<p>${esc(x.words)}</p>`:''}
+        </div>
+        <span class="mini-act" style="color:var(--gold)" onclick="delRow('memorials','${x.id}')">🗑</span>
+      </div>`).join('');
+  }
+  html+=`<button class="btn" style="background:var(--card);color:var(--green);border:1.5px solid var(--line)" onclick="openSheet('memSheet')">🕊️ Honor a loved one</button>`;
+  return html;
+}
+async function addMem(){
+  const n=v('mmName'); if(!n){ toast('Whose memory are we honoring?'); return; }
+  const fEl=document.getElementById('mmFile');
+  try{
+    let img='';
+    if(fEl&&fEl.files&&fEl.files[0]){ toast('📤 Uploading photo…'); img=await uploadPhoto(fEl.files[0],'memorial'); }
+    const {data,error}=await SB.from('memorials').insert({name:n,years:v('mmYears'),words:v('mmWords'),img}).select().single();
+    if(error) throw error;
+    MEMORIALS.unshift(data); closeSheet(); renderYearbook(); toast('🕊️ Forever remembered');
+  }catch(e){ err(e,'Adding memorial'); }
 }
 async function addYb(){
   const y=parseInt(v('ybYear')); if(!y){ toast('Enter a year'); return; }
   const fEl=document.getElementById('ybFile');
-  if(!(fEl&&fEl.files&&fEl.files[0])){ toast('Pick a photo'); return; }
+  const vid=v('ybVid');
+  const hasPhoto=fEl&&fEl.files&&fEl.files[0];
+  if(!hasPhoto&&!vid){ toast('Pick a photo or paste a video link'); return; }
   try{
-    toast('📤 Uploading photo…');
-    const img=await uploadPhoto(fEl.files[0],'yearbook');
-    const {data,error}=await SB.from('yearbook').insert({year:y,caption:v('ybCap'),img}).select().single();
+    let img='';
+    if(hasPhoto){ toast('📤 Uploading photo…'); img=await uploadPhoto(fEl.files[0],'yearbook'); }
+    const {data,error}=await SB.from('yearbook').insert({year:y,caption:v('ybCap'),img,video:vid}).select().single();
     if(error) throw error;
     YEARBOOK.unshift(data); closeSheet(); renderYearbook(); toast('Added to the '+y+' yearbook 📖');
   }catch(e){ err(e,'Adding to yearbook'); }
@@ -1213,6 +1265,7 @@ async function saveSetting(key,val,after,msg){
     SETTINGS[key]=val; closeSheet(); after(); toast(msg);
   }catch(e){ err(e,'Saving'); }
 }
+function saveRoles(){ saveSetting('faith_editors',{text:v('feNames')},applyRoles,'Faith editors saved 👥'); }
 function saveStudy(){ saveSetting('study',{title:v('stTitle'),text:v('stText')},renderFaith,'Study saved 📖'); }
 function saveSched(){ saveSetting('schedule',{text:v('scText')},renderReunion,'Schedule saved 📋'); }
 function saveTravel(){ saveSetting('travel',{text:v('trText'),link:v('trLink')},renderReunion,'Travel info saved 🏨'); }
@@ -1228,6 +1281,7 @@ const SHEETS={
     return `<span class="close-x" onclick="closeSheet()">×</span><h3>${editId?'Edit '+esc(m.name):'Add a family member'}</h3>
     <div class="form-grid">
       <label>Full name</label><input id="mName" placeholder="e.g. Martha Willis" value="${m?esc(m.name):''}">
+      <label>Nickname (optional)</label><input id="mNick" placeholder="e.g. Bubba" value="${m?esc(m.nickname||''):''}">
       <label>Birthday</label><div class="frow">
         <select id="mMo"><option value="">Month</option>${mos}</select>
         <input id="mDy" type="number" min="1" max="31" placeholder="Day" value="${m&&m.bdy?m.bdy:''}">
@@ -1291,13 +1345,29 @@ const SHEETS={
       <span class="mini-act" onclick="closeSheet();delRow('shop','${p.id}')">🗑 Remove</span>
     </div>`;
   },
+  memSheet:()=>`<span class="close-x" onclick="closeSheet()">×</span><h3>🕊️ In Loving Memory</h3>
+    <div class="form-grid">
+      <label>Name</label><input id="mmName" placeholder="Terry L. Willis">
+      <label>Years (optional)</label><input id="mmYears" placeholder="1958 – 2020">
+      <label>A few words (optional)</label><textarea id="mmWords" rows="3" placeholder="Forever in our hearts. His legacy lives on in every Willis."></textarea>
+      <label>Photo (optional)</label><input id="mmFile" type="file" accept="image/*">
+      <button class="btn" onclick="addMem()">Honor them 🕊️</button>
+    </div>`,
   ybSheet:()=>`<span class="close-x" onclick="closeSheet()">×</span><h3>Add to the yearbook</h3>
     <div class="form-grid">
       <label>Year</label><input id="ybYear" type="number" value="${new Date().getFullYear()}">
       <label>Caption</label><input id="ybCap" placeholder="Tampa reunion — the whole family">
       <label>Photo</label><input id="ybFile" type="file" accept="image/*">
+      <label>OR a video link (Facebook / YouTube)</label><input id="ybVid" placeholder="https://…">
       <button class="btn" onclick="addYb()">Add to the yearbook 📖</button>
     </div>`,
+  rolesSheet:()=>{const s=SETTINGS.faith_editors||{};return `<span class="close-x" onclick="closeSheet()">×</span><h3>Faith section editors</h3>
+    <div class="form-grid">
+      <label>Names allowed to edit Faith (comma-separated login names)</label>
+      <input id="feNames" value="${esc(s.text||'')}" placeholder="Joshi, Aunt Carol">
+      <button class="btn" onclick="saveRoles()">Save editors 👥</button>
+      <p style="font-size:11px;color:var(--ink-soft)">They must enter the app with exactly these names to see the ✎ buttons on Scripture, Watch & Worship, and Bible Study.</p>
+    </div>`},
   studySheet:()=>{const s=SETTINGS.study||{};return `<span class="close-x" onclick="closeSheet()">×</span><h3>Bible study</h3>
     <div class="form-grid">
       <label>This week's title</label><input id="stTitle" value="${esc(s.title||'')}" placeholder="This Week: Family & Faith">
