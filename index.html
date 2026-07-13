@@ -265,9 +265,14 @@
       <div class="crest" id="crestLetter">W</div>
       <div class="welcome"><div class="w1" id="welcomeName">Welcome!</div><div class="w2" id="welcomeFam">THE FAMILY</div></div>
     </div>
+    <div style="display:flex;gap:8px">
+    <button class="bellbtn" data-admin style="background:var(--card);box-shadow:var(--shadow)" onclick="openSheet('familySheet')" aria-label="Family settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
     <button class="bellbtn" onclick="refreshAll()" aria-label="Refresh">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
     </button>
+    </div>
   </div>
 
   <!-- HOME -->
@@ -1301,6 +1306,19 @@ async function saveSetting(key,val,after,msg){
     SETTINGS[key]=val; closeSheet(); after(); toast(msg);
   }catch(e){ err(e,'Saving'); }
 }
+async function saveFamily(){
+  const name=v('fsName'), code=v('fsCode');
+  if(!name||!code){ toast('Name and code are both required'); return; }
+  try{
+    const {error}=await SB.from('family').update({name,code}).eq('id',1);
+    if(error) throw error;
+    F.name=name; F.code=code;
+    document.title='We Are '+F.name;
+    document.getElementById('crestLetter').innerHTML=crestHTML(24);
+    document.getElementById('welcomeFam').textContent='THE '+F.name.toUpperCase()+' FAMILY';
+    closeSheet(); renderReunion(); toast('⚙️ Family settings saved');
+  }catch(e){ err(e,'Saving settings'); }
+}
 function saveRoles(){ saveSetting('faith_editors',{text:v('feNames')},applyRoles,'Faith editors saved 👥'); }
 function saveStudy(){ saveSetting('study',{title:v('stTitle'),text:v('stText')},renderFaith,'Study saved 📖'); }
 function saveSched(){ saveSetting('schedule',{text:v('scText')},renderReunion,'Schedule saved 📋'); }
@@ -1397,6 +1415,13 @@ const SHEETS={
       <p style="font-size:11px;color:var(--ink-soft);margin-top:-4px">Videos: keep it ~30–45 seconds (45 MB max). Longer ones: post to Facebook and paste the link below.</p>
       <label>OR paste a video link</label><input id="ybVid" placeholder="https://…">
       <button class="btn" onclick="addYb()">Add to the yearbook 📖</button>
+    </div>`,
+  familySheet:()=>`<span class="close-x" onclick="closeSheet()">×</span><h3>⚙️ Family settings</h3>
+    <div class="form-grid">
+      <label>Family name</label><input id="fsName" value="${esc(F.name)}">
+      <label>Family code (what everyone types to get in)</label><input id="fsCode" value="${esc(F.code)}">
+      <button class="btn" onclick="saveFamily()">Save settings</button>
+      <p style="font-size:11px;color:var(--ink-soft)">⚠️ Changing the code takes effect at everyone's next visit — share the new one in the group chat first.</p>
     </div>`,
   rolesSheet:()=>{const s=SETTINGS.faith_editors||{};return `<span class="close-x" onclick="closeSheet()">×</span><h3>Faith section editors</h3>
     <div class="form-grid">
