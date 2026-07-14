@@ -253,6 +253,18 @@
   .clan-num,.bday-cake,.bellbtn{background:#EDF1F7}
   .crest,.gate .bigcrest{background:var(--green);box-shadow:var(--shadow)}
   .bday-photo .bday-avatar{border-color:#C0392B}
+
+  /* ===== 1996 contrast pass ===== */
+  .btn.gold{background:var(--green-soft);color:#fff}
+  .clan-num{background:var(--green);color:#F4F6FA}
+  .pill-gold{background:#B03A3A;color:#fff}
+  .mt-node.me{background:#B03A3A;color:#fff}
+  .verse-card{border-left:4px solid var(--gold-deep)}
+  .bellbtn{background:#FFFFFF;border:1.5px solid rgba(16,44,94,.16)}
+  .bday-cake{border:1.5px solid rgba(16,44,94,.15)}
+  .form-grid input,.form-grid select,.form-grid textarea{border-color:#C7CEDD;background:#FFFDF7}
+  .composer textarea{border-color:#C7CEDD;background:#FFFDF7}
+  .gin{border-color:rgba(246,241,228,.35)}
 </style>
 </head>
 <body>
@@ -317,7 +329,7 @@
         <div class="section-eyebrow">Our line</div>
         <h2 class="section-title">Family Tree</h2>
         <p class="section-sub">Everyone in the family, and how we connect. Add members and link them to their parents — the tree builds itself.</p>
-        <input id="treeSearch" placeholder="🔍 Find someone… name or nickname" autocomplete="off" style="width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 13px;background:var(--card);margin-bottom:10px" oninput="renderTreeIndex()">
+        <input id="treeSearch" placeholder="🔍 Find someone… name or nickname" autocomplete="off" style="width:100%;border:1.5px solid rgba(16,44,94,.22);border-radius:12px;padding:11px 13px;background:#FFFDF7;margin-bottom:10px" oninput="renderTreeIndex()">
         <button class="btn gold" style="margin-bottom:14px" onclick="openSheet('memberSheet')">+ Add a family member</button>
         <div id="genContainer"></div>
       </div>
