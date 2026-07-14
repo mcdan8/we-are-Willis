@@ -537,6 +537,7 @@ async function enterFamily(){
   if(!n){ toast('Enter your name'); return; }
   if(c!==F.code){ toast('That family code doesn\'t match'); return; }
   ME={name:n}; localStorage.setItem('weare_me',JSON.stringify(ME));
+  try{ SB.from('logins').insert({name:n}).then(()=>{}); }catch(e){}
   enterApp();
 }
 
@@ -1311,6 +1312,41 @@ async function saveSetting(key,val,after,msg){
     SETTINGS[key]=val; closeSheet(); after(); toast(msg);
   }catch(e){ err(e,'Saving'); }
 }
+async function openLog(){
+  const body=document.getElementById('sheetBody');
+  body.innerHTML='<span class="close-x" onclick="closeSheet()">×</span><h3>👥 Who\'s entered</h3><p style="font-size:13px;color:var(--ink-soft)">Loading…</p>';
+  const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+  let logHtml='';
+  try{
+    const {data,error}=await SB.from('logins').select('*').order('ts',{ascending:false}).limit(500);
+    if(error) throw error;
+    const seen={};
+    (data||[]).forEach(r=>{
+      const k=norm(r.name);
+      if(!seen[k]) seen[k]={name:r.name,count:0,last:r.ts};
+      seen[k].count++;
+    });
+    const rows=Object.values(seen);
+    logHtml=rows.length
+      ? rows.map(r=>`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px"><b>${esc(r.name)}</b><span style="color:var(--ink-soft);font-size:12px">${r.count}× · last ${timeAgo(new Date(r.last).getTime())}</span></div>`).join('')
+      : '<p style="font-size:13px;color:var(--ink-soft)">No entries logged yet — logging starts with this version, so the list fills as family comes back.</p>';
+  }catch(e){
+    logHtml='<p style="font-size:13px;color:var(--clay)">Couldn\'t load the log — run the logins SQL first.</p>';
+  }
+  // names reconstructed from activity (pre-log history)
+  const acts={};
+  POSTS.forEach(p=>{ const k=norm(p.author); if(k) acts[k]=p.author; });
+  PRAYERS.forEach(p=>{ const k=norm(p.by_name); if(k) acts[k]=p.by_name; });
+  RECIPES.forEach(r=>{ const k=norm(r.by_name); if(k) acts[k]=r.by_name; });
+  const rv=(SETTINGS.reunion&&SETTINGS.reunion.rsvp)||[];
+  rv.forEach(n=>{ const k=norm(n); if(k) acts[k]=n; });
+  const actNames=Object.values(acts).sort((a,b)=>a.localeCompare(b));
+  body.innerHTML=`<span class="close-x" onclick="closeSheet()">×</span><h3>👥 Who's entered</h3>
+    <div class="divider-label">Entry log (from this version on)</div>${logHtml}
+    <div class="divider-label">Names seen in activity (before the log)</div>
+    ${actNames.length?`<p style="font-size:13.5px;line-height:2">${actNames.map(esc).join(' · ')}</p>`:'<p style="font-size:13px;color:var(--ink-soft)">No activity names yet.</p>'}
+    <p style="font-size:11px;color:var(--ink-soft);margin-top:12px">Names are whatever people typed at the gate — the app can't verify identities. Unknown name? Rotate the family code in ⚙️ settings and re-share it.</p>`;
+}
 async function saveFamily(){
   const name=v('fsName'), code=v('fsCode');
   if(!name||!code){ toast('Name and code are both required'); return; }
@@ -1426,6 +1462,7 @@ const SHEETS={
       <label>Family name</label><input id="fsName" value="${esc(F.name)}">
       <label>Family code (what everyone types to get in)</label><input id="fsCode" value="${esc(F.code)}">
       <button class="btn" onclick="saveFamily()">Save settings</button>
+      <button class="btn" style="background:var(--paper);color:var(--green);border:1.5px solid var(--line)" onclick="openLog()">👥 See who's entered</button>
       <p style="font-size:11px;color:var(--ink-soft)">⚠️ Changing the code takes effect at everyone's next visit — share the new one in the group chat first.</p>
     </div>`,
   rolesSheet:()=>{const s=SETTINGS.faith_editors||{};return `<span class="close-x" onclick="closeSheet()">×</span><h3>Faith section editors</h3>
