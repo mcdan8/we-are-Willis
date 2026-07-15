@@ -237,6 +237,11 @@
   .pick-item:last-child{border-bottom:none}
   .pick-item:active{background:var(--paper)}
   .mini-act{cursor:pointer;color:var(--clay);font-size:14px;padding:2px 6px;font-weight:700}
+  .lb{position:fixed;inset:0;z-index:300;background:rgba(5,10,25,.93);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+  .lb.show{display:flex}
+  .lb img{max-width:100%;max-height:80vh;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .lb .lbcap{color:#F4F6FA;font-size:14px;margin-top:14px;text-align:center;font-weight:600}
+  .lb .lbx{position:absolute;top:18px;right:20px;color:#F4F6FA;font-size:26px;font-weight:700}
   .toast{position:fixed;bottom:118px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#F6F1E4;padding:12px 20px;border-radius:30px;font-size:13px;font-weight:500;z-index:200;opacity:0;transition:.3s;pointer-events:none;box-shadow:var(--shadow-lg);max-width:90%;text-align:center}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .savebanner{position:fixed;top:0;left:0;right:0;background:var(--clay);color:#fff;font-size:11.5px;font-weight:600;text-align:center;padding:7px 12px;z-index:300;display:none}
@@ -422,6 +427,8 @@
 <div class="modal" id="modal" onclick="if(event.target===this)closeSheet()">
   <div class="sheet" id="sheetBody"></div>
 </div>
+
+<div class="lb" id="lightbox" onclick="closeLB()"><span class="lbx">×</span><img id="lbImg" alt=""><div class="lbcap" id="lbCap"></div></div>
 
 <div class="toast" id="toast"></div>
 
@@ -660,7 +667,7 @@ function renderFeed(){
     <div class="post">
       <div class="post-top"><div class="avatar">${initials(p.author)}</div>
         <div class="who"><div class="n">${esc(p.author)}</div><div class="m">${timeAgo(new Date(p.created_at).getTime())}</div></div></div>
-      ${p.img?`<img class="post-photo" src="${esc(p.img)}" loading="lazy">`:''}
+      ${p.img?`<img class="post-photo" src="${esc(p.img)}" loading="lazy" style="cursor:pointer" onclick="openPostPhoto('${p.id}')">`:''}
       <div class="post-body"><p>${esc(p.body)}</p></div>
       <div class="post-actions"><span onclick="likePost('${p.id}')">❤️ ${p.likes||0}</span></div>
     </div>`).join('');
@@ -1249,10 +1256,10 @@ function renderYearbook(){
   Object.keys(years).map(Number).sort((a,b)=>b-a).forEach(y=>{
     html+=`<div class="yb-year"><span class="y">${y}</span><span class="l"></span></div><div class="yb-grid">`;
     html+=years[y].map((x,i)=>`
-      <div class="yb-cell${i===0?' wide':''}">
+      <div class="yb-cell${i===0?' wide':''}" ${(!x.video&&x.img)?`style="cursor:pointer" onclick="openYbPhoto('${x.id}')"`:''}>
         ${x.img?`<img src="${esc(x.img)}" loading="lazy">`:''}
         ${x.video?`<a href="${esc(x.video)}" target="_blank" rel="noopener" style="position:absolute;inset:0;z-index:1;display:grid;place-items:center;text-decoration:none;color:#fff;font-size:36px;background:${x.img?'rgba(0,0,0,.28)':'rgba(16,27,69,.4)'}">▶</a>`:''}
-        <span class="yb-del" style="z-index:2" onclick="delRow('yearbook','${x.id}')">🗑</span>
+        <span class="yb-del" style="z-index:2" onclick="event.stopPropagation();delRow('yearbook','${x.id}')">🗑</span>
         <div class="cap" style="z-index:2;pointer-events:none">${esc(x.caption)}${x.video?' 🎬':''}</div>
       </div>`).join('');
     html+='</div>';
@@ -1594,6 +1601,14 @@ function toggleSong(){
 song&&song.addEventListener('ended',()=>setSongUI(false));
 song&&song.addEventListener('error',()=>{ setSongUI(false); });
 
+function openLB(src,cap){
+  document.getElementById('lbImg').src=src;
+  document.getElementById('lbCap').textContent=cap||'';
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLB(){ document.getElementById('lightbox').classList.remove('show'); }
+function openYbPhoto(id){ const x=YEARBOOK.find(y=>y.id===id); if(x&&x.img) openLB(x.img,(x.caption||'')+' · '+x.year); }
+function openPostPhoto(id){ const p=POSTS.find(y=>y.id===id); if(p&&p.img) openLB(p.img,p.author); }
 let tt;
 function toast(msg){
   const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
