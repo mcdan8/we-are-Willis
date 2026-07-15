@@ -624,11 +624,11 @@ function renderToday(){
       <div class="bday-card">
         <div class="bday-photo"><div class="bday-ring"></div><div class="bday-avatar">${initials(m.name)}</div><div class="bday-cake">🎂</div></div>
         <div class="bday-text"><div class="lbl">🎉 TODAY'S BIRTHDAY</div>
-        <h2 onclick="openPerson('${id}')">${esc(m.name)} <span class="tap-hint">›</span></h2>
+        <h2 onclick="openPerson('${id}')">${esc(m.nickname||m.name.split(' ')[0])} <span class="tap-hint">›</span></h2>
         <p>${age?('Turning '+age+' today — '):''}send them love!</p></div>
       </div>
       <div class="bday-actions">
-        <button class="pill pill-gold" onclick="quickLove('${esc(m.nickname||m.name)}')">💛 Send love</button>
+        <button class="pill pill-gold" onclick="quickLove('${esc(m.nickname||m.name.split(' ')[0])}')">💛 Send love</button>
         <button class="pill pill-ghost" onclick="openPerson('${id}')">🌳 Family tree</button>
       </div>`;
     return;
@@ -641,7 +641,7 @@ function renderToday(){
       <div class="bday-card">
         <div class="bday-photo"><div class="bday-avatar">${initials(m.name)}</div></div>
         <div class="bday-text"><div class="lbl">🗓 NEXT BIRTHDAY</div>
-        <h2 onclick="openPerson('${bestId}')">${esc(m.name)} <span class="tap-hint">›</span></h2>
+        <h2 onclick="openPerson('${bestId}')">${esc(m.nickname||m.name.split(' ')[0])} <span class="tap-hint">›</span></h2>
         <p>${best.days===1?'Tomorrow':'In '+best.days+' days'} · ${MONTHS[m.bmo-1]} ${m.bdy}</p></div>
       </div>`;
   }else{
