@@ -628,7 +628,7 @@ function renderToday(){
         <p>${age?('Turning '+age+' today — '):''}send them love!</p></div>
       </div>
       <div class="bday-actions">
-        <button class="pill pill-gold" onclick="quickLove('${esc(m.name)}')">💛 Send love</button>
+        <button class="pill pill-gold" onclick="quickLove('${esc(m.nickname||m.name)}')">💛 Send love</button>
         <button class="pill pill-ghost" onclick="openPerson('${id}')">🌳 Family tree</button>
       </div>`;
     return;
@@ -669,8 +669,21 @@ function renderFeed(){
         <div class="who"><div class="n">${esc(p.author)}</div><div class="m">${timeAgo(new Date(p.created_at).getTime())}</div></div></div>
       ${p.img?`<img class="post-photo" src="${esc(p.img)}" loading="lazy" style="cursor:pointer" onclick="openPostPhoto('${p.id}')">`:''}
       <div class="post-body"><p>${esc(p.body)}</p></div>
-      <div class="post-actions"><span onclick="likePost('${p.id}')">❤️ ${p.likes||0}</span></div>
+      <div class="post-actions"><span onclick="likePost('${p.id}')">❤️ ${p.likes||0}</span>${canModPost(p)?`<span class="mini-act" onclick="openSheet('postSheet','${p.id}')">✎</span><span class="mini-act" onclick="delRow('posts','${p.id}')">🗑</span>`:''}</div>
     </div>`).join('');
+}
+async function savePost(editId){
+  const p=POSTS.find(x=>x.id===editId); if(!p)return;
+  const body=v('epBody');
+  const rm=document.getElementById('epRmImg');
+  const upd={body:body,img:(rm&&rm.checked)?'':(p.img||'')};
+  if(!upd.body&&!upd.img){ toast('A post needs words or a photo'); return; }
+  try{
+    const {error}=await SB.from('posts').update(upd).eq('id',editId);
+    if(error) throw error;
+    p.body=upd.body; p.img=upd.img;
+    closeSheet(); renderFeed(); toast('Post updated ✓');
+  }catch(e){ err(e,'Editing post'); }
 }
 async function addPost(){
   const t=v('postText');
@@ -909,9 +922,9 @@ async function delRow(table,id){
   try{
     const {error}=await SB.from(table).delete().eq('id',id);
     if(error) throw error;
-    const map={shop:SHOP,recipes:RECIPES,events:EVENTS,yearbook:YEARBOOK,memorials:MEMORIALS};
+    const map={shop:SHOP,recipes:RECIPES,events:EVENTS,yearbook:YEARBOOK,memorials:MEMORIALS,posts:POSTS};
     const arr=map[table]; const i=arr.findIndex(x=>x.id===id); if(i>-1) arr.splice(i,1);
-    ({shop:renderShop,recipes:renderRecipes,events:renderCalendar,yearbook:renderYearbook,memorials:renderYearbook})[table]();
+    ({shop:renderShop,recipes:renderRecipes,events:renderCalendar,yearbook:renderYearbook,memorials:renderYearbook,posts:renderFeed})[table]();
     toast('Deleted 🗑');
   }catch(e){ err(e,'Deleting'); }
 }
@@ -1120,6 +1133,10 @@ function extraReunionCards(){
     <p style="font-size:13px;color:var(--ink-soft)">Every city, every year — the admin can add the list with ✎.</p></div>`;
   }
   return html;
+}
+function canModPost(p){
+  const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+  return amAdminNow()||(ME&&norm(p.author)===norm(ME.name));
 }
 function canFaith(){
   const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
@@ -1460,6 +1477,14 @@ const SHEETS={
       <span class="mini-act" onclick="closeSheet();delRow('shop','${p.id}')">🗑 Remove</span>
     </div>`;
   },
+  postSheet:(editId)=>{const p=POSTS.find(x=>x.id===editId);if(!p)return '<span class="close-x" onclick="closeSheet()">×</span><p>Not found.</p>';
+    return `<span class="close-x" onclick="closeSheet()">×</span><h3>Edit post</h3>
+    <div class="form-grid">
+      <p style="font-size:11.5px;color:var(--ink-soft)">by ${esc(p.author)}</p>
+      <textarea id="epBody" rows="4">${esc(p.body)}</textarea>
+      ${p.img?`<label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;font-weight:600;color:var(--ink)"><input id="epRmImg" type="checkbox" style="width:auto"> Remove the photo</label>`:''}
+      <button class="btn" onclick="savePost('${editId}')">Save changes</button>
+    </div>`},
   memSheet:()=>`<span class="close-x" onclick="closeSheet()">×</span><h3>🕊️ In Loving Memory</h3>
     <div class="form-grid">
       <label>Name</label><input id="mmName" placeholder="Terry L. Willis">
